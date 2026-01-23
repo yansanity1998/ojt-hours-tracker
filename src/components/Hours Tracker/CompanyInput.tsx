@@ -1,6 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Building2, MapPin, Search as SearchIcon, Loader2, ExternalLink, Check, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Building2, MapPin, Search as SearchIcon, Loader2, ExternalLink, Check, AlertCircle, ChevronDown, ChevronUp, LocateFixed } from 'lucide-react';
 import debounce from 'lodash.debounce';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 interface CompanyInputProps {
     companyName: string;
@@ -13,6 +16,7 @@ interface CompanyInputProps {
 
 interface PlaceResult {
     display_name: string;
+    coordinates?: [number, number];
 }
 
 const CompanyInput: React.FC<CompanyInputProps> = ({
@@ -23,6 +27,11 @@ const CompanyInput: React.FC<CompanyInputProps> = ({
     onCompanyLocationChange,
     onTotalHoursChange,
 }) => {
+    const ILIGAN_CENTER: [number, number] = [8.2280, 124.2452];
+    const ILIGAN_BBOX = "124.15,8.12,124.45,8.45"; // minLon,minLat,maxLon,maxLat
+    const [mapCenter, setMapCenter] = useState<[number, number]>(ILIGAN_CENTER);
+    const [markerPos, setMarkerPos] = useState<[number, number] | null>(null);
+
     const [isMinimized, setIsMinimized] = useState(false);
     const [dragStartY, setDragStartY] = useState(0);
     const [dragOffset, setDragOffset] = useState(0);
@@ -64,9 +73,8 @@ const CompanyInput: React.FC<CompanyInputProps> = ({
         setError(null);
 
         try {
-            // Using PHOTON API (by Komoot) - Much faster and more reliable than direct Nominatim for search
-            // Biased towards Philippines (lat: 12.8797, lon: 121.7740)
-            const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&limit=6&lat=12.8797&lon=121.7740`;
+            // Using PHOTON API (by Komoot) - Restricted to Iligan City
+            const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&limit=6&lat=${ILIGAN_CENTER[0]}&lon=${ILIGAN_CENTER[1]}&bbox=${ILIGAN_BBOX}`;
 
             const response = await fetch(url, {
                 method: 'GET',
@@ -85,8 +93,10 @@ const CompanyInput: React.FC<CompanyInputProps> = ({
                     const street = props.street ? `, ${props.street}` : '';
                     const city = props.city ? `, ${props.city}` : '';
                     const country = props.country ? `, ${props.country}` : '';
+                    const coords = feature.geometry?.coordinates;
                     return {
-                        display_name: `${name}${street}${city}${country}`
+                        display_name: `${name}${street}${city}${country}`,
+                        coordinates: coords ? [coords[1], coords[0]] : undefined // Photon is [lon, lat]
                     };
                 });
                 setSuggestions(results);
@@ -129,11 +139,68 @@ const CompanyInput: React.FC<CompanyInputProps> = ({
         }
     };
 
-    const selectPlace = (place: PlaceResult) => {
+    const selectPlace = (place: PlaceResult, coords?: [number, number]) => {
         onCompanyLocationChange(place.display_name);
+        setInputValue(place.display_name);
+        if (coords) {
+            setMapCenter(coords);
+            setMarkerPos(coords);
+        }
         setSuggestions([]);
         setShowDropdown(false);
         setError(null);
+    };
+
+    const handleCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            setError('Geolocation not supported');
+            return;
+        }
+
+        setIsSearching(true);
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                // Check if within Iligan bounds (roughly)
+                const inIligan = latitude >= 8.12 && latitude <= 8.45 && longitude >= 124.15 && longitude <= 124.45;
+
+                if (!inIligan) {
+                    setError('You must be in Iligan City');
+                    setIsSearching(false);
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`https://photon.komoot.io/reverse?lat=${latitude}&lon=${longitude}`);
+                    const data = await response.json();
+                    if (data.features && data.features.length > 0) {
+                        const props = data.features[0].properties;
+                        const name = props.name || '';
+                        const city = props.city || 'Iligan City';
+                        const display = `${name}${name && city ? ', ' : ''}${city}`;
+                        selectPlace({ display_name: display }, [latitude, longitude]);
+                    } else {
+                        selectPlace({ display_name: `Current Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})` }, [latitude, longitude]);
+                    }
+                } catch (_err) {
+                    selectPlace({ display_name: `Current Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})` }, [latitude, longitude]);
+                }
+            },
+            () => {
+                setError('Location access denied');
+                setIsSearching(false);
+            },
+            { enableHighAccuracy: true }
+        );
+    };
+
+    // Helper component to update map view
+    const ChangeView = ({ center }: { center: [number, number] }) => {
+        const map = useMap();
+        useEffect(() => {
+            map.setView(center, 15);
+        }, [center, map]);
+        return null;
     };
 
     // Drag handlers for minimize/maximize gesture
@@ -272,7 +339,7 @@ const CompanyInput: React.FC<CompanyInputProps> = ({
                         type="text"
                         value={companyName}
                         onChange={(e) => onCompanyNameChange(e.target.value)}
-                        className="input-field"
+                        className="input-field truncate !pr-10"
                         placeholder="Ex. Google PH"
                     />
                 </div>
@@ -299,11 +366,18 @@ const CompanyInput: React.FC<CompanyInputProps> = ({
                             type="text"
                             value={inputValue}
                             onChange={handleInputChange}
-                            className={`input-field !pl-11 pr-10 focus:ring-0 ${error ? 'border-red-200' : ''}`}
-                            placeholder="Type to search locations..."
+                            className={`input-field !pl-11 !pr-36 focus:ring-0 truncate ${error ? 'border-red-200' : ''}`}
+                            placeholder="Type to search locations in Iligan..."
                         />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                            {isSearching ? <Loader2 className="w-4 h-4 text-[#1a2517] animate-spin" /> : <SearchIcon className="w-4 h-4 text-[#1a2517]/20" />}
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                            <button
+                                onClick={handleCurrentLocation}
+                                className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/60 hover:text-primary transition-all"
+                                title="Use Current Location"
+                            >
+                                <LocateFixed className="w-4 h-4" />
+                            </button>
+                            {isSearching ? <Loader2 className="w-4 h-4 text-[#1a2517] animate-spin" /> : <SearchIcon className="w-4 h-4 text-[#1a2517]/30" />}
                         </div>
                     </div>
 
@@ -338,7 +412,9 @@ const CompanyInput: React.FC<CompanyInputProps> = ({
                                         suggestions.map((p, i) => (
                                             <button
                                                 key={i}
-                                                onClick={() => selectPlace(p)}
+                                                onClick={() => {
+                                                    selectPlace(p, p.coordinates);
+                                                }}
                                                 className="w-full text-left px-5 py-4 hover:bg-[#1a2517]/5 transition-all flex items-start gap-4 border-b border-gray-50 last:border-0 group"
                                             >
                                                 <div className="w-8 h-8 rounded-lg bg-[#1a2517]/5 flex items-center justify-center flex-shrink-0 group-hover:bg-[#1a2517]/10">
@@ -363,6 +439,35 @@ const CompanyInput: React.FC<CompanyInputProps> = ({
                             )}
                         </div>
                     )}
+
+                    {/* Leaflet Map Preview */}
+                    <div className="mt-4 rounded-2xl overflow-hidden border border-primary/5 shadow-inner h-48 relative z-0">
+                        <MapContainer
+                            center={mapCenter}
+                            zoom={13}
+                            scrollWheelZoom={false}
+                            style={{ height: '100%', width: '100%' }}
+                            dragging={!isDragging}
+                            zoomControl={false}
+                            maxBounds={[[8.10, 124.10], [8.50, 124.50]]}
+                            minZoom={11}
+                        >
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+                            <ChangeView center={mapCenter} />
+                            {markerPos && <Marker position={markerPos} icon={L.icon({
+                                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+                                iconSize: [25, 41],
+                                iconAnchor: [12, 41]
+                            })} />}
+                        </MapContainer>
+                        <div className="absolute bottom-2 right-2 z-[400] bg-white/80 backdrop-blur-md px-2 py-1 rounded-lg text-[8px] font-bold text-primary uppercase tracking-tighter shadow-sm border border-black/5 pointer-events-none">
+                            Iligan City Restricted
+                        </div>
+                    </div>
                 </div>
 
                 {/* Target Hours */}
