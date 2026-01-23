@@ -1,6 +1,6 @@
-    import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../../supabase/supabase';
-import { LogOut, Loader2, Lock, Mail, Save, User } from 'lucide-react';
+import { LogOut, Loader2, Lock, Mail, Save, User, Camera } from 'lucide-react';
 
 interface ProfileProps {
     companyName: string;
@@ -21,17 +21,38 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
     const [password, setPassword] = useState('');
     const [passwordConfirm, setPasswordConfirm] = useState('');
 
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+
     const [message, setMessage] = useState<string | null>(null);
     const [messageType, setMessageType] = useState<'success' | 'error' | null>(null);
 
     useEffect(() => {
         const loadUser = async () => {
-            const { data, error } = await supabase.auth.getUser();
-            if (!error && data.user) {
-                setEmail(data.user.email ?? '');
-                const metaName = (data.user.user_metadata as { full_name?: string } | null)?.full_name;
-                if (metaName) {
-                    setFullName(metaName);
+            const { data: { user }, error } = await supabase.auth.getUser();
+            if (!error && user) {
+                setEmail(user.email ?? '');
+
+                // Fetch from profiles table
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('full_name, avatar_url')
+                    .eq('id', user.id)
+                    .single();
+
+                if (!profileError && profile) {
+                    setFullName(profile.full_name ?? '');
+                    setAvatarUrl(profile.avatar_url);
+                } else {
+                    // Fallback to metadata
+                    const metaName = (user.user_metadata as { full_name?: string } | null)?.full_name;
+                    if (metaName) {
+                        setFullName(metaName);
+                    }
+                    const metaAvatar = (user.user_metadata as { avatar_url?: string } | null)?.avatar_url;
+                    if (metaAvatar) {
+                        setAvatarUrl(metaAvatar);
+                    }
                 }
             }
             setInitialLoading(false);
@@ -49,6 +70,55 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
         }, 3000);
     };
 
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            setUploading(true);
+            if (!e.target.files || e.target.files.length === 0) {
+                throw new Error('You must select an image to upload.');
+            }
+
+            const file = e.target.files[0];
+            const fileExt = file.name.split('.').pop();
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) throw new Error('No user logged in.');
+
+            const filePath = `${user.id}/${Math.random()}.${fileExt}`;
+
+            // Upload to storage
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            // Get public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            // Update profiles table
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ avatar_url: publicUrl })
+                .eq('id', user.id);
+
+            if (updateError) throw updateError;
+
+            // Update auth metadata for faster access elsewhere
+            await supabase.auth.updateUser({
+                data: { avatar_url: publicUrl }
+            });
+
+            setAvatarUrl(publicUrl);
+            showMessage('success', 'Profile picture updated!');
+        } catch (error: any) {
+            showMessage('error', error.message || 'Error uploading avatar');
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const handleSaveName = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!fullName.trim()) {
@@ -56,12 +126,21 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
             return;
         }
         setSavingName(true);
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // Update both profiles table and auth metadata
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ full_name: fullName.trim() })
+            .eq('id', user?.id);
+
         const { error } = await supabase.auth.updateUser({
             data: { full_name: fullName.trim() },
         });
+
         setSavingName(false);
 
-        if (error) {
+        if (error || profileError) {
             showMessage('error', 'Failed to update name.');
         } else {
             showMessage('success', 'Name updated successfully.');
@@ -130,11 +209,10 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
         <div className="card space-y-6">
             {message && (
                 <div
-                    className={`px-4 py-2 rounded-lg text-xs font-semibold text-center ${
-                        messageType === 'success'
+                    className={`px-4 py-2 rounded-lg text-xs font-semibold text-center ${messageType === 'success'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                             : 'bg-red-50 text-red-600 border border-red-100'
-                    }`}
+                        }`}
                 >
                     {message}
                 </div>
@@ -144,16 +222,42 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
                 <h2 className="text-2xl font-bold text-[#1a2517] mb-4">Profile</h2>
                 <div className="space-y-4">
                     <div className="p-4 bg-gradient-to-br from-[#1a2517]/5 to-[#ACC8A2]/5 rounded-xl">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-full bg-[#1a2517]/10 flex items-center justify-center text-[#1a2517]">
-                                <User className="w-5 h-5" />
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="relative group">
+                                <div className="w-20 h-20 rounded-2xl bg-[#1a2517]/10 flex items-center justify-center text-[#1a2517] overflow-hidden border-2 border-[#1a2517]/5 group-hover:border-[#ACC8A2] transition-all duration-300 shadow-inner">
+                                    {avatarUrl ? (
+                                        <img
+                                            src={avatarUrl}
+                                            alt="Profile"
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                    ) : (
+                                        <User className="w-10 h-10 opacity-40" />
+                                    )}
+                                    {uploading && (
+                                        <div className="absolute inset-0 bg-white/60 flex items-center justify-center backdrop-blur-[2px]">
+                                            <Loader2 className="w-6 h-6 text-[#1a2517] animate-spin" />
+                                        </div>
+                                    )}
+                                </div>
+                                <label className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-[#1a2517] text-white flex items-center justify-center cursor-pointer hover:bg-[#4A5D44] transition-all shadow-lg border-2 border-white group-hover:scale-110">
+                                    <Camera className="w-4 h-4" />
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleAvatarUpload}
+                                        disabled={uploading}
+                                    />
+                                </label>
                             </div>
                             <div>
-                                <p className="text-xs font-semibold text-[#1a2517]/60 uppercase tracking-widest">Account</p>
-                                <p className="text-sm font-bold text-[#1a2517] flex items-center gap-2">
+                                <p className="text-xs font-semibold text-[#1a2517]/60 uppercase tracking-widest mb-1">Account</p>
+                                <p className="text-base font-bold text-[#1a2517] flex items-center gap-2">
                                     {email}
-                                    <Mail className="w-3.5 h-3.5 text-[#1a2517]/50" />
+                                    <Mail className="w-4 h-4 text-[#1a2517]/30" />
                                 </p>
+                                <p className="text-[10px] text-[#1a2517]/50 font-medium">Click the camera to update photo</p>
                             </div>
                         </div>
 

@@ -13,7 +13,7 @@ interface TimeEntry {
 
 interface TimeRecordsProps {
     entries: TimeEntry[];
-    onUpdateEntry: (id: string, field: 'date' | 'amIn' | 'amOut' | 'pmIn' | 'pmOut', value: string) => void;
+    onUpdateEntry: (id: string, field: 'date' | 'amIn' | 'amOut' | 'pmIn' | 'pmOut', value: string | null) => void;
     onDeleteEntry: (id: string) => void;
     onAddEntry: () => void;
 }
@@ -31,16 +31,29 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
         const isToday = entryDate === todayStr;
 
         if (isToday) {
-            const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            const currentHour = now.getHours();
+            const currentMin = now.getMinutes();
+            const isAmTime = currentHour < 12 || (currentHour === 12 && currentMin < 30);
+            const currentTime = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
 
             if (type === 'am') {
-                onUpdateEntry(entryId, 'amIn', currentTime);
-                // Don't set out time automatically for today
-                onUpdateEntry(entryId, 'amOut', '');
+                if (isAmTime) {
+                    onUpdateEntry(entryId, 'amIn', currentTime);
+                    onUpdateEntry(entryId, 'amOut', '');
+                } else {
+                    // Retroactive AM add
+                    onUpdateEntry(entryId, 'amIn', '08:00');
+                    onUpdateEntry(entryId, 'amOut', '12:00');
+                }
             } else {
-                onUpdateEntry(entryId, 'pmIn', currentTime);
-                // Don't set out time automatically for today
-                onUpdateEntry(entryId, 'pmOut', '');
+                if (!isAmTime) {
+                    onUpdateEntry(entryId, 'pmIn', currentTime);
+                    onUpdateEntry(entryId, 'pmOut', '');
+                } else {
+                    // Future PM add
+                    onUpdateEntry(entryId, 'pmIn', '13:00');
+                    onUpdateEntry(entryId, 'pmOut', '17:00');
+                }
             }
         } else {
             // Default static values for past dates
@@ -56,11 +69,11 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
 
     const handleRemoveSession = (entryId: string, type: 'am' | 'pm') => {
         if (type === 'am') {
-            onUpdateEntry(entryId, 'amIn', '');
-            onUpdateEntry(entryId, 'amOut', '');
+            onUpdateEntry(entryId, 'amIn', null);
+            onUpdateEntry(entryId, 'amOut', null);
         } else {
-            onUpdateEntry(entryId, 'pmIn', '');
-            onUpdateEntry(entryId, 'pmOut', '');
+            onUpdateEntry(entryId, 'pmIn', null);
+            onUpdateEntry(entryId, 'pmOut', null);
         }
     };
 
@@ -101,8 +114,8 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                     </div>
                 ) : (
                     entries.map((entry) => {
-                        const hasAm = !!entry.amIn;
-                        const hasPm = !!entry.pmIn;
+                        const hasAm = entry.amIn !== null;
+                        const hasPm = entry.pmIn !== null;
 
                         // Calculate per-session hours purely for display if needed
                         const getSessionHours = (inTime: string | null, outTime: string | null) => {

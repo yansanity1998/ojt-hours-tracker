@@ -51,6 +51,7 @@ const Dashboard: React.FC = () => {
     const [cardOrder, setCardOrder] = useState(['company-input', 'hours-progress', 'daily-notes']);
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
     // Drag and drop sensors
     const sensors = useSensors(
@@ -136,6 +137,22 @@ const Dashboard: React.FC = () => {
                 return;
             }
             setUserId(user.id);
+            const metaAvatar = (user.user_metadata as { avatar_url?: string } | null)?.avatar_url;
+            if (metaAvatar) setUserAvatar(metaAvatar);
+
+            // Fetch profile for avatar and full name
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('avatar_url, full_name')
+                .eq('id', user.id)
+                .single();
+
+            if (profile?.avatar_url) {
+                setUserAvatar(profile.avatar_url);
+            } else {
+                const metaAvatar = (user.user_metadata as { avatar_url?: string } | null)?.avatar_url;
+                if (metaAvatar) setUserAvatar(metaAvatar);
+            }
 
             // Fetch OJT Settings
             const { data: settings } = await supabase
@@ -286,13 +303,14 @@ const Dashboard: React.FC = () => {
                 // Determine slot to use
                 let targetSlot: 'AM' | 'PM' | null = null;
 
-                if (isAmTime && !todayEntry.amIn) targetSlot = 'AM';
-                else if (!isAmTime && !todayEntry.pmIn) targetSlot = 'PM';
-                else if (!todayEntry.amIn) targetSlot = 'AM'; // Fallback
-                else if (!todayEntry.pmIn) targetSlot = 'PM'; // Fallback
+                if (isAmTime) {
+                    if (!todayEntry.amIn) targetSlot = 'AM';
+                } else {
+                    if (!todayEntry.pmIn) targetSlot = 'PM';
+                }
 
                 if (!targetSlot) {
-                    pushNotification('time-out', 'All sessions for today are already filled.');
+                    pushNotification('time-out', 'No available session slot for the current time.');
                     return;
                 }
 
@@ -432,11 +450,11 @@ const Dashboard: React.FC = () => {
     };
 
     // 3. Time Entry Logic
-    const handleUpdateEntry = async (id: string, field: 'date' | 'amIn' | 'amOut' | 'pmIn' | 'pmOut', value: string) => {
+    const handleUpdateEntry = async (id: string, field: 'date' | 'amIn' | 'amOut' | 'pmIn' | 'pmOut', value: string | null) => {
         const entryToUpdate = timeEntries.find(e => e.id === id);
         if (!entryToUpdate) return;
 
-        const updatedEntry = { ...entryToUpdate, [field]: value || null };
+        const updatedEntry = { ...entryToUpdate, [field]: value };
         if (field !== 'date') {
             updatedEntry.hours = calculateTotalHours(updatedEntry.amIn, updatedEntry.amOut, updatedEntry.pmIn, updatedEntry.pmOut);
         }
@@ -484,7 +502,7 @@ const Dashboard: React.FC = () => {
         await supabase
             .from('ojt_time_entries')
             .update({
-                [dbField]: value || null,
+                [dbField]: value === "" ? null : value,
                 ...(field !== 'date' ? { hours: updatedEntry.hours } : {})
             })
             .eq('id', id);
@@ -502,15 +520,15 @@ const Dashboard: React.FC = () => {
         const defaultDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const currentDate = initialValues?.date || defaultDate;
 
-        // Default to a full day if manual add
+        // Default to a vacant day. UI will provide "Add Session" buttons for manual entry.
         const newEntryData = {
             user_id: userId,
             date: currentDate,
-            am_in: '08:00',
-            am_out: '12:00',
-            pm_in: '13:00',
-            pm_out: '17:00',
-            hours: 8
+            am_in: null,
+            am_out: null,
+            pm_in: null,
+            pm_out: null,
+            hours: 0
         };
 
         const { data } = await supabase
@@ -523,14 +541,15 @@ const Dashboard: React.FC = () => {
             const formatted: TimeEntry = {
                 id: data.id,
                 date: data.date,
-                amIn: data.am_in.substring(0, 5),
-                amOut: data.am_out.substring(0, 5),
-                pmIn: data.pm_in.substring(0, 5),
-                pmOut: data.pm_out.substring(0, 5),
+                // Use empty strings locally so inputs show up immediately for manual editing
+                amIn: '',
+                amOut: '',
+                pmIn: '',
+                pmOut: '',
                 hours: parseFloat(data.hours)
             };
             setTimeEntries(prev => [formatted, ...prev]);
-            pushNotification('entry-added', `Entry added for ${formatted.date}.`);
+            pushNotification('entry-added', `New entry prepared for ${formatted.date}.`);
         }
     };
 
@@ -632,7 +651,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
                             <img
-                                src={logo}
+                                src={userAvatar || logo}
                                 alt="OJT Hours logo"
                                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shadow-md bg-white/90"
                             />
@@ -740,6 +759,7 @@ const Dashboard: React.FC = () => {
                 onTabChange={handleTabChange}
                 isTimedIn={isTimedIn}
                 onTimeToggle={handleTimeToggle}
+                avatarUrl={userAvatar}
             />
         </div>
     );

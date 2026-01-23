@@ -13,13 +13,15 @@ interface NavBarProps {
     onTabChange?: (tab: string) => void;
     isTimedIn?: boolean;
     onTimeToggle?: () => void;
+    avatarUrl?: string | null;
 }
 
 const NavBar: React.FC<NavBarProps> = ({
     activeTab = 'home',
     onTabChange,
     isTimedIn = false,
-    onTimeToggle
+    onTimeToggle,
+    avatarUrl = null
 }) => {
     const navItems: NavItem[] = [
         {
@@ -41,7 +43,11 @@ const NavBar: React.FC<NavBarProps> = ({
             active: activeTab === 'stats'
         },
         {
-            icon: <User className="w-5 h-5" />,
+            icon: avatarUrl ? (
+                <div className={`w-5 h-5 rounded-full overflow-hidden border-2 transition-all duration-300 ${activeTab === 'profile' ? 'border-primary' : 'border-gray-200 group-hover:border-accent'}`}>
+                    <img src={avatarUrl} alt="P" className="w-full h-full object-cover" />
+                </div>
+            ) : <User className="w-5 h-5" />,
             label: 'Profile',
             href: 'profile',
             active: activeTab === 'profile'
