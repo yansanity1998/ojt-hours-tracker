@@ -15,3 +15,137 @@
 
     --font-sans: "Outfit", "system-ui", "sans-serif";
 }
+
+/* Rolling animation for logo transitions */
+@keyframes roll {
+    0% {
+        transform: translateX(0) rotate(0deg) scale(1);
+    }
+
+    50% {
+        transform: translateX(75vw) rotate(180deg) scale(1.2);
+    }
+
+    100% {
+        transform: translateX(150vw) rotate(360deg) scale(1);
+    }
+}
+
+@keyframes rollIn {
+    0% {
+        transform: translateX(-150vw) rotate(-360deg) scale(0.9);
+        opacity: 0;
+    }
+
+    50% {
+        transform: translateX(-75vw) rotate(-180deg) scale(1.2);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(0) rotate(0deg) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Apply rolling animations */
+.animate-roll {
+    animation: roll 800ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.animate-roll-in {
+    animation: rollIn 900ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Utility Animations */
+@keyframes fadeSlideUp {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-slide-up {
+    animation: fadeSlideUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes slideInBottom {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.animate-slide-in-bottom {
+    animation: slideInBottom 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes fadeSlideDown {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-slide-down {
+    animation: fadeSlideDown 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes slideInRight {
+    0% {
+        transform: translate3d(100%, 0, 0);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translate3d(0, 0, 0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInLeft {
+    0% {
+        transform: translate3d(-100%, 0, 0);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translate3d(0, 0, 0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.animate-slide-in-left {
+    animation: slideInLeft 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}

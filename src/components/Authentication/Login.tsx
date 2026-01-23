@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import mainImage from '../../assets/image/calendar.jpg';
 import { Mail, Lock, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -10,6 +10,13 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    useEffect(() => {
+        // Trigger animations after component mounts
+        const timer = setTimeout(() => setIsLoaded(true), 50);
+        return () => clearTimeout(timer);
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -38,25 +45,45 @@ const Login = () => {
 
                 {/* Header Section with Image */}
                 <div className="flex flex-col items-center pt-8 pb-4 px-8">
-                    <div className="w-40 h-40 md:w-56 md:h-56 mb-2 relative rounded-full overflow-hidden">
+                    {/* Logo with fade-in and scale animation */}
+                    <div
+                        className={`w-40 h-40 md:w-56 md:h-56 mb-2 relative rounded-full overflow-hidden ${isLoaded ? 'animate-roll-in' : 'opacity-0'
+                            }`}
+                        style={{ transitionDelay: '100ms' }}
+                    >
                         {/* Using the user provided image as a logo/hero element */}
                         <img
                             src={mainImage}
                             alt="OJTHub Logo"
-                            className="w-full h-full object-cover rounded-full transition-all duration-500 ease-out"
+                            className="w-full h-full object-cover rounded-full transition-transform duration-500 hover:scale-110"
                         />
                     </div>
 
-                    <h1 className="text-3xl font-extrabold text-white tracking-tight mb-1">
+                    {/* Title with fade-in and slide-up animation */}
+                    <h1
+                        className={`text-3xl font-extrabold text-white tracking-tight mb-1 transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                            }`}
+                        style={{ transitionDelay: '250ms' }}
+                    >
                         OJTHub
                     </h1>
-                    <p className="text-gray-100 text-sm font-medium text-center max-w-[80%]">
+
+                    {/* Subtitle with fade-in and slide-up animation */}
+                    <p
+                        className={`text-gray-100 text-sm font-medium text-center max-w-[80%] transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                            }`}
+                        style={{ transitionDelay: '400ms' }}
+                    >
                         Streamline your On-the-Job Training tracking
                     </p>
                 </div>
 
                 {/* Login Form */}
-                <div className="px-8 pb-6">
+                <div
+                    className={`px-8 pb-6 transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                        }`}
+                    style={{ transitionDelay: '550ms' }}
+                >
                     <form className="space-y-4" onSubmit={handleLogin}>
                         {error && (
                             <div className="bg-red-50 text-red-600 p-3 rounded-xl flex items-center gap-2 text-sm border border-red-100">
@@ -120,7 +147,11 @@ const Login = () => {
                         </button>
                     </form>
 
-                    <div className="my-4 flex items-center gap-4">
+                    <div
+                        className={`my-4 flex items-center gap-4 transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                            }`}
+                        style={{ transitionDelay: '700ms' }}
+                    >
                         <div className="h-px bg-white/30 flex-1" />
                         <span className="text-gray-100 text-sm font-medium">or</span>
                         <div className="h-px bg-white/30 flex-1" />
@@ -145,7 +176,9 @@ const Login = () => {
                                 setError(err.message || 'An error occurred during Google login');
                             }
                         }}
-                        className="w-full bg-white hover:bg-gray-50 text-gray-700 font-bold py-3.5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3 group"
+                        className={`w-full bg-white hover:bg-gray-50 text-gray-700 font-bold py-3.5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md active:scale-[0.96] transition-all duration-300 flex items-center justify-center gap-3 group transform ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                            }`}
+                        style={{ transitionDelay: '850ms' }}
                     >
                         <svg className="w-5 h-5" viewBox="0 0 24 24">
                             <path
@@ -169,9 +202,13 @@ const Login = () => {
                     </button>
 
                     {/* Footer / Register Link */}
-                    <div className="mt-4 pt-4 border-t border-white/30 flex flex-col items-center gap-3">
+                    <div
+                        className={`mt-4 pt-4 border-t border-white/30 flex flex-col items-center gap-3 transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                            }`}
+                        style={{ transitionDelay: '1000ms' }}
+                    >
                         <p className="text-gray-100 text-sm">Don't have an account yet?</p>
-                        <Link to="/register" className="w-full text-center py-3 rounded-xl border-2 border-white text-white font-bold hover:bg-white/10 hover:border-white transition-all active:scale-[0.98]">
+                        <Link to="/register" className="w-full text-center py-3 rounded-xl border-2 border-white text-white font-bold hover:bg-white/10 hover:border-white hover:shadow-lg hover:shadow-white/20 transition-all duration-300 active:scale-[0.96]">
                             Create an account
                         </Link>
                     </div>

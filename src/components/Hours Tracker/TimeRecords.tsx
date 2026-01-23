@@ -119,7 +119,7 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
     };
 
     return (
-        <div className="card fade-slide-up" style={{ animationDelay: '0.3s' }}>
+        <div className="card">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1a2517]/10 to-[#ACC8A2]/10 flex items-center justify-center text-[#1a2517] shadow-sm">

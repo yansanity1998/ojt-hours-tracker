@@ -10,7 +10,7 @@ import Notification, { type NotificationItem, type NotificationType } from './No
 import '../../App.css';
 import { supabase } from '../../supabase/supabase';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Loader2, MapPin } from 'lucide-react';
+import { Bell, MapPin } from 'lucide-react';
 import logo from '../../assets/image/calendar.jpg';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -38,6 +38,10 @@ const Dashboard: React.FC = () => {
     };
 
     const [activeTab, setActiveTab] = useState<string>(() => getTabFromPath(location.pathname));
+    const [animationClass, setAnimationClass] = useState('fade-slide-up');
+    const prevTabRef = React.useRef(activeTab);
+
+    const TAB_ORDER = ['home', 'logs', 'stats', 'profile'];
     const [companyName, setCompanyName] = useState('');
     const [companyLocation, setCompanyLocation] = useState('');
     const [totalRequiredHours, setTotalRequiredHours] = useState(0);
@@ -82,7 +86,31 @@ const Dashboard: React.FC = () => {
     };
 
     useEffect(() => {
-        setActiveTab(getTabFromPath(location.pathname));
+        const newTab = getTabFromPath(location.pathname);
+        if (newTab !== activeTab) {
+            const prevIndex = TAB_ORDER.indexOf(prevTabRef.current);
+            const newIndex = TAB_ORDER.indexOf(newTab);
+
+            // Determine Animation
+            let newAnimation = 'fade-slide-up'; // Default
+
+            if (newTab === 'home') {
+                // Return to home: Slide Left if coming from right, or Fade Up if direct
+                if (prevIndex > newIndex) newAnimation = 'animate-slide-in-left';
+                else newAnimation = 'fade-slide-up';
+            } else {
+                // Subpages
+                if (prevIndex !== -1 && newIndex !== -1) {
+                    newAnimation = newIndex > prevIndex ? 'animate-slide-in-right' : 'animate-slide-in-left';
+                } else {
+                    newAnimation = 'animate-slide-in-right';
+                }
+            }
+
+            setAnimationClass(newAnimation);
+            setActiveTab(newTab);
+            prevTabRef.current = newTab;
+        }
     }, [location.pathname]);
 
     // Load notifications from localStorage
@@ -227,7 +255,7 @@ const Dashboard: React.FC = () => {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        navigate('/login');
+        navigate('/');
     };
 
     const totalHoursCompleted = timeEntries.reduce((sum, entry) => sum + entry.hours, 0);
@@ -555,10 +583,12 @@ const Dashboard: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="w-10 h-10 text-[#1a2517] animate-spin" />
-                    <p className="text-[#1a2517] font-bold animate-pulse">Syncing Tracker...</p>
+            <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
+                <div className="flex flex-col items-center gap-6">
+                    <div className="w-20 h-20 rounded-full overflow-hidden animate-roll" style={{ animationDuration: '2s' }}>
+                        <img src={logo} alt="Loading..." className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-[#1a2517] font-bold animate-pulse tracking-widest text-sm uppercase">Syncing Data...</p>
                 </div>
             </div>
         );
@@ -645,7 +675,7 @@ const Dashboard: React.FC = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#F8F9FA] via-gray-50 to-[#F8F9FA] pb-24">
             {/* Mobile App Header */}
-            <div className="bg-gradient-to-br from-[#1a2517] to-[#4A5D44] px-4 pt-6 pb-8 sm:pb-10 rounded-b-[2rem] shadow-xl">
+            <div className="bg-gradient-to-br from-[#1a2517] to-[#4A5D44] px-4 pt-6 pb-8 sm:pb-10 rounded-b-[2rem] shadow-xl fade-slide-down">
                 <div className="max-w-md mx-auto">
                     {/* Top bar */}
                     <div className="flex items-center justify-between mb-6">
@@ -747,8 +777,11 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Main Content */}
-            <div className="max-w-md mx-auto px-4 -mt-4 pb-12">
-                <div className="fade-slide-up">
+            <div className="max-w-md mx-auto px-4 -mt-4 pb-12 overflow-hidden">
+                <div
+                    key={activeTab}
+                    className={animationClass}
+                >
                     {renderContent()}
                 </div>
             </div>

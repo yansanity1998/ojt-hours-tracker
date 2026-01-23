@@ -1,42 +1,80 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import mainImage from '../../assets/image/calendar.jpg';
 
 const LandingPage = () => {
     const navigate = useNavigate();
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [isRolling, setIsRolling] = useState(false);
+
+    useEffect(() => {
+        // Trigger animations after component mounts
+        const timer = setTimeout(() => setIsLoaded(true), 50);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const handleNavigation = (path: string) => {
+        setIsRolling(true);
+        // Wait for roll animation to complete before navigating
+        setTimeout(() => {
+            navigate(path);
+        }, 850);
+    };
 
     return (
         <div className="min-h-screen bg-[#4b5d2a] flex flex-col items-center p-8 pb-12 font-sans text-white relative overflow-hidden">
 
             {/* Center Content */}
             <div className="flex-1 flex flex-col items-center justify-center w-full z-10">
-                <div className="w-40 h-40 md:w-56 md:h-56 relative rounded-full overflow-hidden">
+                {/* Logo with fade-in and scale animation */}
+                <div
+                    className={`w-40 h-40 md:w-56 md:h-56 relative rounded-full overflow-hidden transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'
+                        } ${isRolling ? 'animate-roll' : ''
+                        }`}
+                    style={{ transitionDelay: '100ms' }}
+                >
                     <img
                         src={mainImage}
                         alt="OJTHub Logo"
-                        className="w-full h-full object-cover rounded-full"
+                        className="w-full h-full object-cover rounded-full transition-transform duration-500 hover:scale-110"
                     />
                 </div>
 
-                <h1 className="text-4xl font-extrabold text-white tracking-tight mt-6 mb-1 text-center">
+                {/* Title with fade-in and slide-up animation */}
+                <h1
+                    className={`text-4xl font-extrabold text-white tracking-tight mt-6 mb-1 text-center transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                        }`}
+                    style={{ transitionDelay: '300ms' }}
+                >
                     OJTHub
                 </h1>
-                <p className="text-gray-100 font-medium text-center max-w-[80%] leading-tight">
+
+                {/* Subtitle with fade-in and slide-up animation */}
+                <p
+                    className={`text-gray-100 font-medium text-center max-w-[80%] leading-tight transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                        }`}
+                    style={{ transitionDelay: '450ms' }}
+                >
                     Empowering your internship journey
                 </p>
             </div>
 
-            {/* Buttons Section */}
+            {/* Buttons Section with fade-in and slide-up animation */}
             <div className="w-full space-y-4 mt-auto pt-8">
                 <button
-                    onClick={() => navigate('/register')}
-                    className="w-full bg-white hover:bg-gray-100 text-[#1a2517] font-bold py-4 rounded-2xl shadow-xl shadow-black/20 active:scale-[0.98] transition-all duration-200 text-lg"
+                    onClick={() => handleNavigation('/register')}
+                    className={`w-full bg-white hover:bg-gray-100 text-[#1a2517] font-bold py-4 rounded-2xl shadow-xl shadow-black/20 hover:shadow-2xl hover:shadow-black/30 active:scale-[0.96] transition-all duration-300 text-lg transform ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                        }`}
+                    style={{ transitionDelay: '600ms' }}
                 >
                     Create an account
                 </button>
 
                 <button
-                    onClick={() => navigate('/login')}
-                    className="w-full bg-transparent border-2 border-white text-white font-bold py-4 rounded-2xl hover:bg-white/10 active:scale-[0.98] transition-all duration-200 text-lg"
+                    onClick={() => handleNavigation('/login')}
+                    className={`w-full bg-transparent border-2 border-white text-white font-bold py-4 rounded-2xl hover:bg-white/10 hover:border-white/90 hover:shadow-lg hover:shadow-white/20 active:scale-[0.96] transition-all duration-300 text-lg transform ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                        }`}
+                    style={{ transitionDelay: '750ms' }}
                 >
                     I already have an account
                 </button>

@@ -344,7 +344,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
     };
 
     return (
-        <div className="card fade-slide-up" style={{ animationDelay: '0.3s' }}>
+        <div className="card">
             <div className="flex items-center justify-between mb-6 sm:mb-8">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/5">

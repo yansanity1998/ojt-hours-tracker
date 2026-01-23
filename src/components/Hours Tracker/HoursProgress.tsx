@@ -72,7 +72,7 @@ const HoursProgress: React.FC<HoursProgressProps> = ({
     const isBadgeUnlocked = (threshold: number) => progressPercentage >= threshold;
 
     return (
-        <div className="card fade-slide-up" style={{ animationDelay: '0.2s' }}>
+        <div className="card">
             <div className="flex items-center gap-3 mb-6 sm:mb-8">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/5">
                     <BarChart2 className="w-5 h-5 sm:w-6 sm:h-6" />

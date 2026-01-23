@@ -7,6 +7,7 @@ import Register from './components/Authentication/Register';
 import LandingPage from './components/Authentication/LandingPage';
 import { supabase } from './supabase/supabase';
 import type { Session } from '@supabase/supabase-js';
+import logo from './assets/image/calendar.jpg';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -31,8 +32,10 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#4b5d2a]">
+        <div className="w-24 h-24 rounded-full overflow-hidden animate-roll">
+          <img src={logo} alt="Loading..." className="w-full h-full object-cover" />
+        </div>
       </div>
     );
   }
