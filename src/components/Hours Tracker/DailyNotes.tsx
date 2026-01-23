@@ -33,6 +33,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
 
     // Camera states
     const [showCamera, setShowCamera] = useState(false);
+    const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
     const webcamRef = useRef<Webcam>(null);
 
     // Print ref
@@ -103,6 +104,10 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
         const res = await fetch(url);
         const buf = await res.arrayBuffer();
         return new File([buf], filename, { type: mimeType });
+    };
+
+    const toggleCamera = () => {
+        setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
     };
 
     const capturePhoto = useCallback(async () => {
@@ -322,8 +327,8 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                 }}
                                 disabled={todayHasNote}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm transition-all border ${todayHasNote
-                                        ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200'
-                                        : 'bg-primary text-white border-primary hover:bg-primary-light hover:shadow-md active:scale-95'
+                                    ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200'
+                                    : 'bg-primary text-white border-primary hover:bg-primary-light hover:shadow-md active:scale-95'
                                     }`}
                             >
                                 <Plus className={`w-3 h-3 ${todayHasNote ? 'text-gray-400' : 'text-white'}`} />
@@ -375,11 +380,24 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                     mirrored={true}
                                     className="w-full h-full object-cover"
                                     videoConstraints={{
-                                        facingMode: "user",
+                                        facingMode: facingMode,
                                         width: { ideal: 1280 },
                                         height: { ideal: 720 }
                                     }}
                                 />
+                                <div className="absolute top-2 left-2 flex gap-2 z-10">
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            toggleCamera();
+                                        }}
+                                        className="bg-black/50 text-white p-2 rounded-full hover:bg-black/70 flex items-center gap-2"
+                                        title="Switch Camera"
+                                    >
+                                        <Camera className="w-4 h-4 rotate-180" />
+                                        <span className="text-[10px] font-bold uppercase tracking-widest leading-none">Rotate</span>
+                                    </button>
+                                </div>
                                 <button
                                     onClick={(e) => {
                                         e.preventDefault();
