@@ -4,8 +4,9 @@ import { BookOpen, Plus, Edit2, Trash2, Save, X, Calendar, Image as ImageIcon, L
 import Swal from 'sweetalert2';
 import type { NotificationType } from './Notification';
 import Webcam from 'react-webcam';
-import { useReactToPrint } from 'react-to-print';
 import { supabase } from '../../supabase/supabase';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface Note {
     id: string;
@@ -36,14 +37,48 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
     const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
     const webcamRef = useRef<Webcam>(null);
 
-    // Print ref
+    // PDF Download state
+    const [isExporting, setIsExporting] = useState(false);
     const printRef = useRef<HTMLDivElement>(null);
 
-    const handlePrint = useReactToPrint({
-        // @ts-ignore
-        contentRef: printRef,
-        documentTitle: `OJT_Daily_Report_${new Date().toISOString().split('T')[0]}`,
-    });
+    const handleDownloadPDF = async () => {
+        if (!printRef.current) return;
+
+        setIsExporting(true);
+        try {
+            // Wait a bit for any images to be fully rendered
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const element = printRef.current;
+            const canvas = await html2canvas(element, {
+                scale: 2, // Higher quality
+                useCORS: true, // Allow cross-origin images (Supabase)
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`OJT_Daily_Report_${new Date().toLocaleDateString('en-CA')}.pdf`);
+
+            onNotify?.('note-updated', 'PDF downloaded successfully.');
+        } catch (error) {
+            console.error('PDF Export Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Export failed',
+                text: 'Could not generate PDF. Please try again.',
+                confirmButtonColor: '#dc2626'
+            });
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     // Fetch notes on component mount
     useEffect(() => {
@@ -606,11 +641,12 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                 </div>
                                 <div className="flex items-center justify-between sm:justify-end gap-3">
                                     <button
-                                        onClick={handlePrint}
-                                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-xs sm:text-sm font-bold rounded-xl hover:shadow-lg hover:bg-secondary-sage hover:text-primary transition-all active:scale-95"
+                                        onClick={handleDownloadPDF}
+                                        disabled={isExporting}
+                                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-xs sm:text-sm font-bold rounded-xl hover:shadow-lg hover:bg-secondary-sage hover:text-primary transition-all active:scale-95 disabled:opacity-50"
                                     >
-                                        <FileDown className="w-4 h-4" />
-                                        Export PDF
+                                        {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                                        {isExporting ? 'Generating...' : 'Download PDF'}
                                     </button>
                                     <button
                                         onClick={() => setViewingAll(false)}
@@ -651,78 +687,103 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                 )
                 : null}
 
-            {/* Hidden Print Layout */}
-            <div>
-                <style>
-                    {`
-                        @media print {
-                            @page { margin: 20mm; }
-                            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                            #daily-notes-print-section { display: block; }
-                        }
-                        @media screen {
-                            #daily-notes-print-section { display: none; }
-                        }
-                    `}
-                </style>
+            {/* Hidden Export Layout (Positioned off-screen so html2canvas can see it) */}
+            <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
                 <div
                     ref={printRef}
-                    id="daily-notes-print-section"
-                    className="p-8 bg-white text-[#1a2517]"
+                    className="font-serif"
+                    style={{
+                        width: '210mm',
+                        padding: '20mm',
+                        backgroundColor: '#ffffff',
+                        color: '#000000',
+                        minHeight: '297mm'
+                    }}
                 >
-                    {/* Print Header */}
-                    <div className="mb-8 border-b-2 border-[#1a2517] pb-4">
-                        <h1 className="text-3xl font-bold mb-2">OJT Daily Work Report</h1>
-                        <p className="text-sm opacity-60">Generated on {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    {/* Professional Header */}
+                    <div style={{ textAlign: 'center', marginBottom: '30px', borderBottom: '2px solid #000000', paddingBottom: '15px' }}>
+                        <h1 style={{ fontSize: '20pt', fontWeight: 'bold', margin: '0 0 5px 0', textTransform: 'uppercase' }}>OJT Daily Activity Log</h1>
+                        <p style={{ fontSize: '10pt', fontStyle: 'italic', color: '#666666', margin: 0 }}>Generated on {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}</p>
                     </div>
 
-                    {/* Notes List */}
-                    <div className="space-y-6">
-                        {notes.map((note) => (
-                            <div key={note.id} className="break-inside-avoid border-b border-gray-200 pb-6 mb-6">
-                                <div className="flex items-start gap-4">
-                                    {/* Date Column */}
-                                    <div className="w-32 shrink-0">
-                                        <p className="font-bold text-lg">
-                                            {formatDate(note.date) === 'Today' || formatDate(note.date) === 'Yesterday'
-                                                ? new Date(note.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                                                : formatDate(note.date)}
-                                        </p>
-                                        <p className="text-xs opacity-50 uppercase tracking-widest mt-1">
-                                            {new Date(note.date).toLocaleDateString('en-US', { weekday: 'short' })}
-                                        </p>
-                                    </div>
-
-                                    {/* Content Column */}
-                                    <div className="flex-1">
-                                        <div className="prose prose-sm max-w-none">
-                                            <p className="whitespace-pre-wrap text-base leading-relaxed text-justify">
-                                                {note.content}
-                                            </p>
-                                        </div>
-
-                                        {/* Proof Image */}
-                                        {note.imageUrl && (
-                                            <div className="mt-4">
-                                                <p className="text-[10px] font-bold uppercase tracking-widest mb-2 opacity-40">Proof of Work</p>
-                                                <div className="w-64 h-40 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
-                                                    <img
-                                                        src={note.imageUrl}
-                                                        alt="Proof"
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
+                    {/* Intern Details Section */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '30px', fontSize: '10pt' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #cccccc', paddingBottom: '4px' }}>
+                                <span style={{ fontWeight: 'bold' }}>Student Name:</span>
+                                <span style={{ flex: 1 }}>_________________________</span>
                             </div>
-                        ))}
+                            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #cccccc', paddingBottom: '4px' }}>
+                                <span style={{ fontWeight: 'bold' }}>Degree/Program:</span>
+                                <span style={{ flex: 1 }}>_________________________</span>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #cccccc', paddingBottom: '4px' }}>
+                                <span style={{ fontWeight: 'bold' }}>Company/HTE:</span>
+                                <span style={{ flex: 1 }}>_________________________</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #cccccc', paddingBottom: '4px' }}>
+                                <span style={{ fontWeight: 'bold' }}>Total Target Hours:</span>
+                                <span style={{ flex: 1 }}>_________________________</span>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Print Footer */}
-                    <div className="mt-8 pt-8 border-t border-gray-100 text-center">
-                        <p className="text-xs opacity-50">End of Report</p>
+                    {/* Activity Table */}
+                    <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', fontSize: '9.5pt' }}>
+                        <thead>
+                            <tr style={{ backgroundColor: '#f9f9f9' }}>
+                                <th style={{ border: '1px solid #000000', padding: '10px', width: '15%', textAlign: 'center' }}>Date</th>
+                                <th style={{ border: '1px solid #000000', padding: '10px', textAlign: 'left' }}>Detailed Accomplishments & Activities</th>
+                                <th style={{ border: '1px solid #000000', padding: '10px', width: '30%', textAlign: 'center' }}>Photo Evidence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {notes.map((note) => (
+                                <tr key={note.id}>
+                                    <td style={{ border: '1px solid #000000', padding: '10px', verticalAlign: 'top', textAlign: 'center' }}>
+                                        <div style={{ fontWeight: 'bold' }}>{new Date(note.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                                        <div style={{ fontSize: '8pt', color: '#666666', textTransform: 'uppercase' }}>{new Date(note.date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                                        <div style={{ fontSize: '7pt', color: '#999999', marginTop: '2px' }}>{new Date(note.date).getFullYear()}</div>
+                                    </td>
+                                    <td style={{ border: '1px solid #000000', padding: '12px', verticalAlign: 'top', lineHeight: '1.5', textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
+                                        {note.content}
+                                    </td>
+                                    <td style={{ border: '1px solid #000000', padding: '10px', verticalAlign: 'top', textAlign: 'center' }}>
+                                        {note.imageUrl ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                <img
+                                                    src={note.imageUrl}
+                                                    alt="Proof"
+                                                    style={{ width: '100%', height: 'auto', maxHeight: '120px', objectFit: 'contain', borderRadius: '4px', border: '1px solid #eeeeee' }}
+                                                    crossOrigin="anonymous"
+                                                />
+                                                <span style={{ fontSize: '7pt', color: '#999999', marginTop: '5px', textTransform: 'uppercase' }}>Verified Proof</span>
+                                            </div>
+                                        ) : (
+                                            <span style={{ color: '#cccccc', fontStyle: 'italic', fontSize: '8pt' }}>No image attached</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* Report Summary/Footer */}
+                    <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '10pt', paddingTop: '50px' }}>
+                        <div style={{ textAlign: 'center', width: '250px', borderTop: '1px solid #000000', paddingTop: '8px' }}>
+                            <p style={{ fontWeight: 'bold', margin: '0 0 2px 0' }}>Student Signature</p>
+                            <p style={{ fontSize: '8pt', color: '#666666', margin: 0 }}>Date Signed</p>
+                        </div>
+                        <div style={{ textAlign: 'center', width: '250px', borderTop: '1px solid #000000', paddingTop: '8px' }}>
+                            <p style={{ fontWeight: 'bold', margin: '0 0 2px 0' }}>Company Supervisor</p>
+                            <p style={{ fontSize: '8pt', color: '#666666', margin: 0 }}>Signature Over Printed Name</p>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '60px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '8pt', color: '#999999', fontStyle: 'italic', margin: 0 }}>This is an official OJT daily log report generated via OJT Work Tracker.</p>
                     </div>
                 </div>
             </div>

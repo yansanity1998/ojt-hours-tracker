@@ -1,5 +1,8 @@
-import React from 'react';
-import { History, Plus, Trash2, FolderOpen, Sun, Sunset, CalendarDays } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { History, Plus, Trash2, FolderOpen, Sun, Sunset, CalendarDays, FileDown, Loader2 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import Swal from 'sweetalert2';
 
 interface TimeEntry {
     id: string;
@@ -24,6 +27,44 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
     onDeleteEntry,
     onAddEntry,
 }) => {
+    const [isExporting, setIsExporting] = useState(false);
+    const printRef = useRef<HTMLDivElement>(null);
+
+    const handleDownloadPDF = async () => {
+        if (!printRef.current) return;
+
+        setIsExporting(true);
+        try {
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const element = printRef.current;
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`OJT_DTR_${new Date().toLocaleDateString('en-CA')}.pdf`);
+        } catch (error) {
+            console.error('PDF Export Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Export failed',
+                text: 'Could not generate DTR PDF.',
+                confirmButtonColor: '#dc2626'
+            });
+        } finally {
+            setIsExporting(false);
+        }
+    };
     const handleAddSession = (entryId: string, type: 'am' | 'pm', entryDate: string) => {
         // Check if entry is for today
         const now = new Date();
@@ -94,13 +135,23 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                     </div>
                 </div>
 
-                <button
-                    onClick={onAddEntry}
-                    className="btn w-full sm:w-auto justify-center !py-2.5 !px-5"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span className="uppercase tracking-widest text-xs font-bold">New Date</span>
-                </button>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button
+                        onClick={handleDownloadPDF}
+                        disabled={isExporting || entries.length === 0}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary text-xs font-bold rounded-xl border border-primary/10 hover:bg-gray-50 transition-all active:scale-95 disabled:opacity-50 shadow-sm"
+                    >
+                        {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                        <span className="uppercase tracking-widest leading-none">Export PDF</span>
+                    </button>
+                    <button
+                        onClick={onAddEntry}
+                        className="flex-1 sm:flex-none btn justify-center !py-2.5 !px-5"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span className="uppercase tracking-widest text-xs font-bold">New Date</span>
+                    </button>
+                </div>
             </div>
 
             <div className="space-y-4 max-h-[600px] overflow-y-auto no-scrollbar pr-1">
@@ -274,6 +325,118 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                         );
                     })
                 )}
+            </div>
+            {/* Hidden DTR Export Layout */}
+            <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+                <div
+                    ref={printRef}
+                    className="font-serif"
+                    style={{
+                        width: '210mm',
+                        padding: '20mm',
+                        backgroundColor: '#ffffff',
+                        color: '#000000',
+                        minHeight: '297mm',
+                        boxSizing: 'border-box'
+                    }}
+                >
+                    {/* Professional Header */}
+                    <div style={{ textAlign: 'center', marginBottom: '35px', borderBottom: '2.5px solid #000000', paddingBottom: '20px' }}>
+                        <h1 style={{ fontSize: '24pt', fontWeight: 'bold', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>Daily Time Record (DTR)</h1>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', fontSize: '11pt', color: '#444444', fontStyle: 'italic' }}>
+                            <span>On-the-Job Training Program</span>
+                            <span>•</span>
+                            <span>Generated: {new Date().toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' })}</span>
+                        </div>
+                    </div>
+
+                    {/* Intern Details Section */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '40px', marginBottom: '35px', fontSize: '11pt' }}>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #bbbbbb', paddingBottom: '5px', alignItems: 'baseline' }}>
+                                <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Intern Name:</span>
+                                <span style={{ flex: 1, color: '#000000' }}>_______________________________</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #bbbbbb', paddingBottom: '5px', alignItems: 'baseline' }}>
+                                <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>ID Number:</span>
+                                <span style={{ flex: 1, color: '#000000' }}>_______________________________</span>
+                            </div>
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #bbbbbb', paddingBottom: '5px', alignItems: 'baseline' }}>
+                                <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Company:</span>
+                                <span style={{ flex: 1, color: '#000000' }}>_______________________________</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #bbbbbb', paddingBottom: '5px', alignItems: 'baseline' }}>
+                                <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Month/Year:</span>
+                                <span style={{ flex: 1, color: '#000000' }}>{new Date().toLocaleDateString('en-PH', { month: 'long', year: 'numeric', timeZone: 'Asia/Manila' })}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* DTR Table */}
+                    <table style={{ width: '100%', borderCollapse: 'collapse', border: '1.5px solid #000000', fontSize: '10pt', tableLayout: 'fixed' }}>
+                        <thead>
+                            <tr style={{ backgroundColor: '#f2f2f2' }}>
+                                <th rowSpan={2} style={{ border: '1px solid #000000', padding: '12px 5px', width: '60px', verticalAlign: 'middle' }}>Date</th>
+                                <th colSpan={2} style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>Morning (AM) Session</th>
+                                <th colSpan={2} style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>Afternoon (PM) Session</th>
+                                <th rowSpan={2} style={{ border: '1px solid #000000', padding: '12px 5px', width: '70px', verticalAlign: 'middle' }}>Daily Total</th>
+                            </tr>
+                            <tr style={{ backgroundColor: '#fafafa' }}>
+                                <th style={{ border: '1px solid #000000', padding: '8px', textAlign: 'center' }}>Arrival</th>
+                                <th style={{ border: '1px solid #000000', padding: '8px', textAlign: 'center' }}>Departure</th>
+                                <th style={{ border: '1px solid #000000', padding: '8px', textAlign: 'center' }}>Arrival</th>
+                                <th style={{ border: '1px solid #000000', padding: '8px', textAlign: 'center' }}>Departure</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {[...entries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((entry) => (
+                                <tr key={entry.id}>
+                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>
+                                        <div style={{ fontWeight: 'bold', fontSize: '12pt' }}>{new Date(entry.date).getDate()}</div>
+                                        <div style={{ fontSize: '7.5pt', color: '#666666', textTransform: 'uppercase', fontWeight: 'bold' }}>{new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                                    </td>
+                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.amIn || '-- : --'}</td>
+                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.amOut || '-- : --'}</td>
+                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.pmIn || '-- : --'}</td>
+                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.pmOut || '-- : --'}</td>
+                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center', fontWeight: 'bold', backgroundColor: '#fcfcfc' }}>{entry.hours}h</td>
+                                </tr>
+                            ))}
+                            {/* Grand Total Row */}
+                            <tr style={{ backgroundColor: '#eeeeee' }}>
+                                <td colSpan={5} style={{ border: '1px solid #000000', padding: '15px 20px', textAlign: 'right', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '11pt' }}>Grand Total Hours:</td>
+                                <td style={{ border: '1px solid #000000', padding: '15px 10px', textAlign: 'center', fontWeight: '900', fontSize: '13pt' }}>
+                                    {entries.reduce((sum, e) => sum + e.hours, 0)}h
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    {/* Certification Statement */}
+                    <div style={{ marginTop: '40px', fontSize: '10.5pt', textAlign: 'justify', lineHeight: '1.6', color: '#333333' }}>
+                        <p>I hereby certify on my honor that the above is a true and correct report of the hours of work performed, record of which was made daily at the time of arrival and departure from the office/place of work.</p>
+                    </div>
+
+                    {/* Footer / Signatures */}
+                    <div style={{ marginTop: '70px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '11pt' }}>
+                        <div style={{ textAlign: 'center', width: '280px' }}>
+                            <div style={{ borderBottom: '1.5px solid #000000', marginBottom: '8px', minHeight: '20px' }}></div>
+                            <p style={{ fontWeight: 'bold', margin: '0' }}>Signature of Trainee</p>
+                            <p style={{ fontSize: '9pt', color: '#666666', margin: 0 }}>Date Signed</p>
+                        </div>
+                        <div style={{ textAlign: 'center', width: '310px' }}>
+                            <div style={{ borderBottom: '1.5px solid #000000', marginBottom: '8px', minHeight: '20px' }}></div>
+                            <p style={{ fontWeight: 'bold', margin: '0' }}>Supervisor Name & Signature</p>
+                            <p style={{ fontSize: '9pt', color: '#666666', margin: 0 }}>Host Training Establishment (HTE)</p>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '80px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '9pt', color: '#999999', fontStyle: 'italic', margin: 0, borderTop: '1px solid #eeeeee', paddingTop: '15px' }}>This is an official document generated via OJT Hours Tracker</p>
+                    </div>
+                </div>
             </div>
         </div>
     );
