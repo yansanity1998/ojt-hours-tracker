@@ -651,7 +651,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
                             <img
-                                src={userAvatar || logo}
+                                src={logo}
                                 alt="OJT Hours logo"
                                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shadow-md bg-white/90"
                             />
