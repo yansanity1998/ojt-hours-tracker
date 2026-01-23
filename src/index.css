@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
 
 @theme {
     --color-primary: #0d120c;
@@ -13,6 +15,3 @@
 
     --font-sans: "Outfit", "system-ui", "sans-serif";
 }
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap');
-@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');

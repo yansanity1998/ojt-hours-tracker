@@ -114,7 +114,7 @@ const Register: React.FC<RegisterProps> = ({ session }) => {
                                 <input
                                     type="text"
                                     id="name"
-                                    placeholder="John Doe"
+                                    placeholder="Name"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     required
@@ -130,7 +130,7 @@ const Register: React.FC<RegisterProps> = ({ session }) => {
                                 <input
                                     type="email"
                                     id="email"
-                                    placeholder="student@university.edu"
+                                    placeholder="email@gmail.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
@@ -146,7 +146,7 @@ const Register: React.FC<RegisterProps> = ({ session }) => {
                                 <input
                                     type="password"
                                     id="password"
-                                    placeholder="Create a strong password"
+                                    placeholder="Password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required

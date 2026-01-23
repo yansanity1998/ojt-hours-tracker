@@ -19,8 +19,10 @@ import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-ki
 interface TimeEntry {
     id: string;
     date: string;
-    timeIn: string;
-    timeOut: string;
+    amIn: string | null;
+    amOut: string | null;
+    pmIn: string | null;
+    pmOut: string | null;
     hours: number;
 }
 
@@ -44,6 +46,7 @@ const Dashboard: React.FC = () => {
     const [userId, setUserId] = useState<string | null>(null);
     const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
     const [isTimedIn, setIsTimedIn] = useState(false);
+    const [currentSession, setCurrentSession] = useState<'AM' | 'PM' | null>(null);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [cardOrder, setCardOrder] = useState(['company-input', 'hours-progress', 'daily-notes']);
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -81,7 +84,7 @@ const Dashboard: React.FC = () => {
         setActiveTab(getTabFromPath(location.pathname));
     }, [location.pathname]);
 
-    // Load notifications from localStorage when userId is available
+    // Load notifications from localStorage
     useEffect(() => {
         if (!userId) return;
         try {
@@ -114,7 +117,7 @@ const Dashboard: React.FC = () => {
         return () => clearInterval(timer);
     }, []);
 
-    // Persist notifications to localStorage per user
+    // Persist notifications
     useEffect(() => {
         if (!userId) return;
         try {
@@ -147,14 +150,12 @@ const Dashboard: React.FC = () => {
                 setTotalRequiredHours(settings.total_required_hours);
                 if (settings.card_order && Array.isArray(settings.card_order)) {
                     const savedOrder = settings.card_order;
-                    // Ensure daily-notes is added if not present
                     if (!savedOrder.includes('daily-notes')) {
                         savedOrder.push('daily-notes');
                     }
                     setCardOrder(savedOrder);
                 }
             } else {
-                // Initialize default values if not exists
                 setCompanyName('My Company');
                 setCompanyLocation('');
                 setTotalRequiredHours(500);
@@ -165,32 +166,40 @@ const Dashboard: React.FC = () => {
                 .from('ojt_time_entries')
                 .select('*')
                 .eq('user_id', user.id)
-                .order('date', { ascending: false })
-                .order('time_in', { ascending: false });
+                .order('date', { ascending: false });
 
             if (entries) {
-                const formattedEntries = entries.map(e => ({
+                const formattedEntries: TimeEntry[] = entries.map(e => ({
                     id: e.id,
                     date: e.date,
-                    timeIn: e.time_in.substring(0, 5),
-                    timeOut: e.time_out.substring(0, 5),
-                    hours: parseFloat(e.hours)
+                    amIn: e.am_in ? e.am_in.substring(0, 5) : null,
+                    amOut: e.am_out ? e.am_out.substring(0, 5) : null,
+                    pmIn: e.pm_in ? e.pm_in.substring(0, 5) : null,
+                    pmOut: e.pm_out ? e.pm_out.substring(0, 5) : null,
+                    hours: parseFloat(e.hours) || 0
                 }));
                 setTimeEntries(formattedEntries);
 
-                // Check for current active entry using local date
+                // Check for current active status
                 const now = new Date();
                 const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-                // An active entry is one for today where time_out is the sentinel value '23:59'
-                const activeEntry = entries.find(e =>
-                    e.date === today &&
-                    (e.time_out === '23:59' || e.time_out === '23:59:00')
-                );
+                const todayEntry = formattedEntries.find(e => e.date === today);
 
-                if (activeEntry) {
-                    setActiveEntryId(activeEntry.id);
-                    setIsTimedIn(true);
+                if (todayEntry) {
+                    if (todayEntry.amIn && !todayEntry.amOut) {
+                        setIsTimedIn(true);
+                        setCurrentSession('AM');
+                        setActiveEntryId(todayEntry.id);
+                    } else if (todayEntry.pmIn && !todayEntry.pmOut) {
+                        setIsTimedIn(true);
+                        setCurrentSession('PM');
+                        setActiveEntryId(todayEntry.id);
+                    } else {
+                        setIsTimedIn(false);
+                        setCurrentSession(null);
+                        setActiveEntryId(null);
+                    }
                 }
             }
             setLoading(false);
@@ -238,7 +247,25 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    // Time In/Out Handler
+    const calculateTotalHours = (amIn: string | null, amOut: string | null, pmIn: string | null, pmOut: string | null) => {
+        let total = 0;
+
+        if (amIn && amOut) {
+            const t1 = new Date(`2000-01-01T${amIn}`);
+            const t2 = new Date(`2000-01-01T${amOut}`);
+            total += Math.max(0, (t2.getTime() - t1.getTime()) / (1000 * 60 * 60));
+        }
+
+        if (pmIn && pmOut) {
+            const t1 = new Date(`2000-01-01T${pmIn}`);
+            const t2 = new Date(`2000-01-01T${pmOut}`);
+            total += Math.max(0, (t2.getTime() - t1.getTime()) / (1000 * 60 * 60));
+        }
+
+        return Math.round(total * 10) / 10;
+    };
+
+    // Time In/Out Handler with AM/PM Logic
     const handleTimeToggle = async () => {
         if (!userId) return;
 
@@ -246,38 +273,64 @@ const Dashboard: React.FC = () => {
         const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
         const currentDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+        // Find today's entry locally
+        let todayEntry = timeEntries.find(e => e.date === currentDate);
+
+        // If not timed in, we are attempting to Time In
         if (!isTimedIn) {
-            // TIME IN: Check if there's an entry for today already to "replace/resume" it
-            const todayEntry = timeEntries.find(e => e.date === currentDate);
+            // Check if we can time in for AM or PM
+            // Heuristic: If it's before 12:30, prefer AM. Else PM.
+            const isAmTime = now.getHours() < 12 || (now.getHours() === 12 && now.getMinutes() < 30);
 
             if (todayEntry) {
-                // Update existing today's entry
+                // Determine slot to use
+                let targetSlot: 'AM' | 'PM' | null = null;
+
+                if (isAmTime && !todayEntry.amIn) targetSlot = 'AM';
+                else if (!isAmTime && !todayEntry.pmIn) targetSlot = 'PM';
+                else if (!todayEntry.amIn) targetSlot = 'AM'; // Fallback
+                else if (!todayEntry.pmIn) targetSlot = 'PM'; // Fallback
+
+                if (!targetSlot) {
+                    pushNotification('time-out', 'All sessions for today are already filled.');
+                    return;
+                }
+
+                const updates: any = {};
+                if (targetSlot === 'AM') updates.am_in = currentTime;
+                else updates.pm_in = currentTime;
+
                 const { error } = await supabase
                     .from('ojt_time_entries')
-                    .update({
-                        time_out: '23:59',
-                        hours: 0
-                    })
+                    .update(updates)
                     .eq('id', todayEntry.id);
 
                 if (!error) {
-                    setActiveEntryId(todayEntry.id);
+                    // Update Local State
+                    setTimeEntries(prev => prev.map(e => {
+                        if (e.id === todayEntry!.id) {
+                            return {
+                                ...e,
+                                amIn: targetSlot === 'AM' ? currentTime : e.amIn,
+                                pmIn: targetSlot === 'PM' ? currentTime : e.pmIn
+                            };
+                        }
+                        return e;
+                    }));
                     setIsTimedIn(true);
-                    setTimeEntries(prev => prev.map(e =>
-                        e.id === todayEntry.id
-                            ? { ...e, timeOut: '23:59', hours: 0 }
-                            : e
-                    ));
+                    setCurrentSession(targetSlot);
+                    setActiveEntryId(todayEntry.id);
                     handleTabChange('logs');
-                    pushNotification('time-in', 'You timed in for today.');
+                    pushNotification('time-in', `You timed in for the ${targetSlot} session.`);
                 }
             } else {
-                // Create new entry
+                // Create New Entry
+                const targetSlot = isAmTime ? 'AM' : 'PM';
                 const newEntryData = {
                     user_id: userId,
                     date: currentDate,
-                    time_in: currentTime,
-                    time_out: '23:59',
+                    am_in: targetSlot === 'AM' ? currentTime : null,
+                    pm_in: targetSlot === 'PM' ? currentTime : null,
                     hours: 0
                 };
 
@@ -288,51 +341,61 @@ const Dashboard: React.FC = () => {
                     .single();
 
                 if (data) {
-                    setActiveEntryId(data.id);
-                    setIsTimedIn(true);
-
                     const formatted: TimeEntry = {
                         id: data.id,
                         date: data.date,
-                        timeIn: data.time_in.substring(0, 5),
-                        timeOut: data.time_out.substring(0, 5),
+                        amIn: data.am_in ? data.am_in.substring(0, 5) : null,
+                        amOut: null,
+                        pmIn: data.pm_in ? data.pm_in.substring(0, 5) : null,
+                        pmOut: null,
                         hours: 0
                     };
                     setTimeEntries(prev => [formatted, ...prev]);
+                    setIsTimedIn(true);
+                    setCurrentSession(targetSlot);
+                    setActiveEntryId(data.id);
                     handleTabChange('logs');
-                    pushNotification('time-in', 'You timed in for today.');
+                    pushNotification('time-in', `You timed in for the ${targetSlot} session.`);
                 }
             }
         } else {
-            // TIME OUT: Update the active entry
-            if (!activeEntryId) return;
+            // TIME OUT
+            if (!activeEntryId || !currentSession) return;
 
-            const entry = timeEntries.find(e => e.id === activeEntryId);
-            if (!entry) return;
+            todayEntry = timeEntries.find(e => e.id === activeEntryId);
+            if (!todayEntry) return;
 
-            const timeIn = new Date(`2000-01-01T${entry.timeIn}`);
-            const timeOut = new Date(`2000-01-01T${currentTime}`);
-            const diffMs = timeOut.getTime() - timeIn.getTime();
-            const calculatedHours = Math.max(0, Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10);
+            const updates: any = {};
+            let newHours = todayEntry.hours;
+
+            // Update the correct OUT slot
+            if (currentSession === 'AM') {
+                updates.am_out = currentTime;
+                newHours = calculateTotalHours(todayEntry.amIn, currentTime, todayEntry.pmIn, todayEntry.pmOut);
+            } else {
+                updates.pm_out = currentTime;
+                newHours = calculateTotalHours(todayEntry.amIn, todayEntry.amOut, todayEntry.pmIn, currentTime);
+            }
+            updates.hours = newHours;
 
             await supabase
                 .from('ojt_time_entries')
-                .update({
-                    time_out: currentTime,
-                    hours: calculatedHours
-                })
+                .update(updates)
                 .eq('id', activeEntryId);
 
             setTimeEntries(prev => prev.map(e =>
-                e.id === activeEntryId
-                    ? { ...e, timeOut: currentTime, hours: calculatedHours }
-                    : e
+                e.id === activeEntryId ? {
+                    ...e,
+                    amOut: currentSession === 'AM' ? currentTime : e.amOut,
+                    pmOut: currentSession === 'PM' ? currentTime : e.pmOut,
+                    hours: newHours
+                } : e
             ));
 
             setIsTimedIn(false);
-            setActiveEntryId(null);
-            handleTabChange('logs'); // Switch to logs tab
-            pushNotification('time-out', `You timed out and logged ${calculatedHours} hours.`);
+            setCurrentSession(null);
+            handleTabChange('logs');
+            pushNotification('time-out', `You timed out. Total hours today: ${newHours}`);
         }
     };
 
@@ -369,27 +432,60 @@ const Dashboard: React.FC = () => {
     };
 
     // 3. Time Entry Logic
-    const handleUpdateEntry = async (id: string, field: 'timeIn' | 'timeOut', value: string) => {
+    const handleUpdateEntry = async (id: string, field: 'date' | 'amIn' | 'amOut' | 'pmIn' | 'pmOut', value: string) => {
         const entryToUpdate = timeEntries.find(e => e.id === id);
         if (!entryToUpdate) return;
 
-        const updatedEntry = { ...entryToUpdate, [field]: value };
+        const updatedEntry = { ...entryToUpdate, [field]: value || null };
+        if (field !== 'date') {
+            updatedEntry.hours = calculateTotalHours(updatedEntry.amIn, updatedEntry.amOut, updatedEntry.pmIn, updatedEntry.pmOut);
+        }
 
-        // Recalculate hours
-        const timeIn = new Date(`2000-01-01T${updatedEntry.timeIn}`);
-        const timeOut = new Date(`2000-01-01T${updatedEntry.timeOut}`);
-        const diffMs = timeOut.getTime() - timeIn.getTime();
-        updatedEntry.hours = Math.max(0, Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10);
+        const newEntries = timeEntries.map(e => (e.id === id ? updatedEntry : e));
+        setTimeEntries(newEntries);
 
-        setTimeEntries(prev => prev.map(e => (e.id === id ? updatedEntry : e)));
+        // Recalculate Active Status if we modified Today's entry
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        // Check if the modified entry matches today's date (either original or new date)
+        if (entryToUpdate.date === today || (field === 'date' && value === today)) {
+            const todayEntry = field === 'date' && value === today ? updatedEntry : (entryToUpdate.date === today ? updatedEntry : newEntries.find(e => e.date === today));
+
+            if (todayEntry) {
+                if (todayEntry.amIn && !todayEntry.amOut) {
+                    setIsTimedIn(true);
+                    setCurrentSession('AM');
+                    setActiveEntryId(todayEntry.id);
+                } else if (todayEntry.pmIn && !todayEntry.pmOut) {
+                    setIsTimedIn(true);
+                    setCurrentSession('PM');
+                    setActiveEntryId(todayEntry.id);
+                } else {
+                    setIsTimedIn(false);
+                    setCurrentSession(null);
+                    setActiveEntryId(null);
+                }
+            } else {
+                setIsTimedIn(false);
+                setCurrentSession(null);
+                setActiveEntryId(null);
+            }
+        }
 
         // Update Supabase
+        let dbField;
+        if (field === 'date') dbField = 'date';
+        else if (field === 'amIn') dbField = 'am_in';
+        else if (field === 'amOut') dbField = 'am_out';
+        else if (field === 'pmIn') dbField = 'pm_in';
+        else dbField = 'pm_out';
+
         await supabase
             .from('ojt_time_entries')
             .update({
-                time_in: updatedEntry.timeIn,
-                time_out: updatedEntry.timeOut,
-                hours: updatedEntry.hours
+                [dbField]: value || null,
+                ...(field !== 'date' ? { hours: updatedEntry.hours } : {})
             })
             .eq('id', id);
     };
@@ -399,18 +495,22 @@ const Dashboard: React.FC = () => {
         await supabase.from('ojt_time_entries').delete().eq('id', id);
     };
 
-    const handleAddEntry = async () => {
+    const handleAddEntry = async (initialValues?: { timeIn?: string; timeOut?: string; date?: string }) => {
         if (!userId) return;
 
         const now = new Date();
-        const currentDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const defaultDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const currentDate = initialValues?.date || defaultDate;
 
+        // Default to a full day if manual add
         const newEntryData = {
             user_id: userId,
             date: currentDate,
-            time_in: '08:00',
-            time_out: '17:00',
-            hours: 9
+            am_in: '08:00',
+            am_out: '12:00',
+            pm_in: '13:00',
+            pm_out: '17:00',
+            hours: 8
         };
 
         const { data } = await supabase
@@ -423,12 +523,14 @@ const Dashboard: React.FC = () => {
             const formatted: TimeEntry = {
                 id: data.id,
                 date: data.date,
-                timeIn: data.time_in.substring(0, 5),
-                timeOut: data.time_out.substring(0, 5),
+                amIn: data.am_in.substring(0, 5),
+                amOut: data.am_out.substring(0, 5),
+                pmIn: data.pm_in.substring(0, 5),
+                pmOut: data.pm_out.substring(0, 5),
                 hours: parseFloat(data.hours)
             };
             setTimeEntries(prev => [formatted, ...prev]);
-            pushNotification('entry-added', `Manual entry added for ${formatted.date}.`);
+            pushNotification('entry-added', `Entry added for ${formatted.date}.`);
         }
     };
 
