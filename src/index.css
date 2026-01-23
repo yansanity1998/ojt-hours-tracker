@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+    --color-primary: #0d120c;
+    --color-primary-light: #1a2517;
+    --color-accent: #ACC8A2;
+    --color-secondary-sage: #ACC8A2;
+    --color-secondary-olive: #1a2517;
+    --color-secondary-peach: #FFB88C;
+    --color-secondary-blue: #B8D4FF;
+    --color-secondary-pink: #FFB3E6;
+    --color-secondary-yellow: #FFE68C;
+
+    --font-sans: "Outfit", "system-ui", "sans-serif";
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
