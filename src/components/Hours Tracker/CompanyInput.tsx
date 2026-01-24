@@ -366,7 +366,7 @@ const CompanyInput: React.FC<CompanyInputProps> = ({
                             type="text"
                             value={inputValue}
                             onChange={handleInputChange}
-                            className={`input-field !pl-11 !pr-36 focus:ring-0 truncate ${error ? 'border-red-200' : ''}`}
+                            className={`input-field !pl-11 !pr-24 focus:ring-0 truncate ${error ? 'border-red-200' : ''}`}
                             placeholder="Type to search locations in Iligan..."
                         />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">

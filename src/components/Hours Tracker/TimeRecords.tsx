@@ -135,21 +135,21 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
                     <button
                         onClick={handleDownloadPDF}
                         disabled={isExporting || entries.length === 0}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary text-xs font-bold rounded-xl border border-primary/10 hover:bg-gray-50 transition-all active:scale-95 disabled:opacity-50 shadow-sm"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-white text-primary text-[10px] sm:text-xs font-bold rounded-xl border border-primary/10 hover:bg-gray-50 transition-all active:scale-95 disabled:opacity-50 shadow-sm"
                     >
-                        {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
-                        <span className="uppercase tracking-widest leading-none">Export PDF</span>
+                        {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                        <span className="uppercase tracking-wider sm:tracking-widest leading-none">Export PDF</span>
                     </button>
                     <button
                         onClick={onAddEntry}
-                        className="flex-1 sm:flex-none btn justify-center !py-2.5 !px-5"
+                        className="flex-1 sm:flex-none btn justify-center !py-2.5 !px-4 sm:!px-5 !text-[10px] sm:!text-xs"
                     >
-                        <Plus className="w-4 h-4" />
-                        <span className="uppercase tracking-widest text-xs font-bold">New Date</span>
+                        <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="uppercase tracking-wider sm:tracking-widest font-bold">New Date</span>
                     </button>
                 </div>
             </div>
@@ -193,18 +193,18 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                                 </button>
 
                                 {/* Date Header */}
-                                <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 pr-8">
-                                    <div className="flex items-center gap-2.5">
-                                        <CalendarDays className="w-4 h-4 text-[#ACC8A2]" />
+                                <div className="flex flex-wrap items-center justify-between mb-4 pb-3 border-b border-gray-100 pr-8 gap-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <CalendarDays className="w-4 h-4 text-[#ACC8A2] shrink-0" />
                                         <input
                                             type="date"
                                             value={entry.date}
                                             onChange={(e) => onUpdateEntry(entry.id, 'date', e.target.value)}
-                                            className="text-sm sm:text-base font-bold text-[#1a2517] bg-transparent border-none focus:ring-0 p-0 hover:bg-gray-50 rounded cursor-pointer"
+                                            className="text-sm sm:text-base font-bold text-[#1a2517] bg-transparent border-none focus:ring-0 p-0 hover:bg-gray-50 rounded cursor-pointer min-w-[120px]"
                                         />
                                     </div>
-                                    <div className="px-3 py-1 bg-[#1a2517]/5 rounded-full">
-                                        <span className="text-xs font-bold text-[#1a2517]">
+                                    <div className="px-2.5 py-1 bg-[#1a2517]/5 rounded-lg sm:rounded-full">
+                                        <span className="text-[10px] sm:text-xs font-bold text-[#1a2517] whitespace-nowrap">
                                             Total: {entry.hours}h
                                         </span>
                                     </div>
@@ -227,23 +227,23 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
 
                                         {hasAm ? (
                                             <div className="space-y-3">
-                                                <div className="grid grid-cols-2 gap-3">
+                                                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                                     <div>
-                                                        <label className="block text-[9px] font-black text-[#1a2517]/50 mb-1 uppercase tracking-wider">Time In</label>
+                                                        <label className="block text-[8px] sm:text-[9px] font-black text-[#1a2517]/50 mb-1 uppercase tracking-wider">Time In</label>
                                                         <input
                                                             type="time"
                                                             value={entry.amIn || ''}
                                                             onChange={(e) => onUpdateEntry(entry.id, 'amIn', e.target.value)}
-                                                            className="w-full bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-[#1a2517] outline-none"
+                                                            className="w-full bg-white border border-gray-200 rounded-lg px-1.5 sm:px-2 py-1.5 text-[10px] sm:text-xs font-medium focus:ring-1 focus:ring-[#1a2517] outline-none"
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-[9px] font-black text-[#1a2517]/50 mb-1 uppercase tracking-wider">Time Out</label>
+                                                        <label className="block text-[8px] sm:text-[9px] font-black text-[#1a2517]/50 mb-1 uppercase tracking-wider">Time Out</label>
                                                         <input
                                                             type="time"
                                                             value={entry.amOut || ''}
                                                             onChange={(e) => onUpdateEntry(entry.id, 'amOut', e.target.value)}
-                                                            className="w-full bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-[#1a2517] outline-none"
+                                                            className="w-full bg-white border border-gray-200 rounded-lg px-1.5 sm:px-2 py-1.5 text-[10px] sm:text-xs font-medium focus:ring-1 focus:ring-[#1a2517] outline-none"
                                                         />
                                                     </div>
                                                 </div>
@@ -282,23 +282,23 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
 
                                         {hasPm ? (
                                             <div className="space-y-3">
-                                                <div className="grid grid-cols-2 gap-3">
+                                                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                                     <div>
-                                                        <label className="block text-[9px] font-black text-[#1a2517]/50 mb-1 uppercase tracking-wider">Time In</label>
+                                                        <label className="block text-[8px] sm:text-[9px] font-black text-[#1a2517]/50 mb-1 uppercase tracking-wider">Time In</label>
                                                         <input
                                                             type="time"
                                                             value={entry.pmIn || ''}
                                                             onChange={(e) => onUpdateEntry(entry.id, 'pmIn', e.target.value)}
-                                                            className="w-full bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-[#1a2517] outline-none"
+                                                            className="w-full bg-white border border-gray-200 rounded-lg px-1.5 sm:px-2 py-1.5 text-[10px] sm:text-xs font-medium focus:ring-1 focus:ring-[#1a2517] outline-none"
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-[9px] font-black text-[#1a2517]/50 mb-1 uppercase tracking-wider">Time Out</label>
+                                                        <label className="block text-[8px] sm:text-[9px] font-black text-[#1a2517]/50 mb-1 uppercase tracking-wider">Time Out</label>
                                                         <input
                                                             type="time"
                                                             value={entry.pmOut || ''}
                                                             onChange={(e) => onUpdateEntry(entry.id, 'pmOut', e.target.value)}
-                                                            className="w-full bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-[#1a2517] outline-none"
+                                                            className="w-full bg-white border border-gray-200 rounded-lg px-1.5 sm:px-2 py-1.5 text-[10px] sm:text-xs font-medium focus:ring-1 focus:ring-[#1a2517] outline-none"
                                                         />
                                                     </div>
                                                 </div>

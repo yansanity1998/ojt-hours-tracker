@@ -345,42 +345,43 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
 
     return (
         <div className="card">
-            <div className="flex items-center justify-between mb-6 sm:mb-8">
+            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between mb-6 sm:mb-8 gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/5">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/5 shrink-0">
                         <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                        <h2 className="text-xl sm:text-2xl font-black text-primary tracking-tight">
+                        <h2 className="text-xl sm:text-2xl font-black text-primary tracking-tight leading-none">
                             Daily Notes
                         </h2>
-                        <div className="flex items-center gap-2 mt-1">
-                            <button
-                                onClick={() => {
-                                    if (todayHasNote) return;
-                                    setIsAddingNote(true);
-                                }}
-                                disabled={todayHasNote}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm transition-all border ${todayHasNote
-                                    ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200'
-                                    : 'bg-primary text-white border-primary hover:bg-primary-light hover:shadow-md active:scale-95'
-                                    }`}
-                            >
-                                <Plus className={`w-3 h-3 ${todayHasNote ? 'text-gray-400' : 'text-white'}`} />
-                                Add Note
-                            </button>
-                            <button
-                                onClick={() => setViewingAll(true)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-primary/10 transition-all border border-primary/20 shadow-sm"
-                            >
-                                <BookOpen className="w-3 h-3" />
-                                View All
-                            </button>
-                        </div>
+                        <p className="text-[10px] text-primary/50 font-bold uppercase tracking-wider mt-1">
+                            Document your journey
+                        </p>
                     </div>
                 </div>
-                {/* Spacer to push content to left if needed, or remove completely */}
-                <div className="w-8"></div>
+                <div className="flex items-center gap-2 w-full xs:w-auto">
+                    <button
+                        onClick={() => {
+                            if (todayHasNote) return;
+                            setIsAddingNote(true);
+                        }}
+                        disabled={todayHasNote}
+                        className={`flex-1 xs:flex-none flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm transition-all border ${todayHasNote
+                            ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200'
+                            : 'bg-primary text-white border-primary hover:bg-primary-light hover:shadow-md active:scale-95'
+                            }`}
+                    >
+                        <Plus className={`w-3 h-3 ${todayHasNote ? 'text-gray-400' : 'text-white'}`} />
+                        Add Note
+                    </button>
+                    <button
+                        onClick={() => setViewingAll(true)}
+                        className="flex-1 xs:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-primary/10 transition-all border border-primary/20 shadow-sm"
+                    >
+                        <BookOpen className="w-3 h-3" />
+                        View All
+                    </button>
+                </div>
             </div>
 
             {/* Add Note Form */}
@@ -469,12 +470,12 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                         ) : null}
                     </div>
 
-                    <div className="flex flex-wrap justify-between items-center mt-3 gap-2">
+                    <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mt-4 gap-3">
                         <div className="flex items-center gap-2">
                             {/* Take Photo Button */}
                             <button
                                 onClick={() => setShowCamera(true)}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${showCamera
+                                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-all ${showCamera
                                     ? 'bg-primary text-white border-primary'
                                     : 'bg-white border-gray-200 text-primary/60 hover:border-secondary-sage hover:text-primary hover:bg-gray-50'
                                     }`}
@@ -484,7 +485,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                             </button>
 
                             {/* Upload File Button */}
-                            <label className="cursor-pointer group flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 hover:border-secondary-sage hover:bg-gray-50 transition-all">
+                            <label className="flex-1 sm:flex-none cursor-pointer group flex items-center justify-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 hover:border-secondary-sage hover:bg-gray-50 transition-all">
                                 <ImageIcon className="w-4 h-4 text-primary/60 group-hover:text-primary" />
                                 <span className="text-xs font-bold text-primary/60 group-hover:text-primary">
                                     Upload
@@ -502,7 +503,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                             <button
                                 onClick={handleAddNote}
                                 disabled={uploading}
-                                className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg hover:bg-secondary-sage hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-95"
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg hover:bg-secondary-sage hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-95"
                             >
                                 {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                                 {uploading ? 'Saving...' : 'Save'}
@@ -516,7 +517,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                     setShowCamera(false);
                                 }}
                                 disabled={uploading}
-                                className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-all disabled:opacity-50 active:scale-95"
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-all disabled:opacity-50 active:scale-95"
                             >
                                 <X className="w-3.5 h-3.5" />
                                 Cancel

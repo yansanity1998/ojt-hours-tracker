@@ -15,6 +15,8 @@ import logo from '../../assets/image/calendar.jpg';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 
 interface TimeEntry {
     id: string;
@@ -56,6 +58,7 @@ const Dashboard: React.FC = () => {
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [userAvatar, setUserAvatar] = useState<string | null>(null);
+    const [activationEffect, setActivationEffect] = useState<'in' | 'out' | null>(null);
 
     // Drag and drop sensors
     const sensors = useSensors(
@@ -368,6 +371,16 @@ const Dashboard: React.FC = () => {
                     setActiveEntryId(todayEntry.id);
                     handleTabChange('logs');
                     pushNotification('time-in', `You timed in for the ${targetSlot} session.`);
+
+                    // Trigger cool green effect
+                    setActivationEffect('in');
+                    confetti({
+                        particleCount: 150,
+                        spread: 70,
+                        origin: { y: 0.8 },
+                        colors: ['#ACC8A2', '#1a2517', '#ffffff']
+                    });
+                    setTimeout(() => setActivationEffect(null), 1500);
                 }
             } else {
                 // Create New Entry
@@ -402,6 +415,16 @@ const Dashboard: React.FC = () => {
                     setActiveEntryId(data.id);
                     handleTabChange('logs');
                     pushNotification('time-in', `You timed in for the ${targetSlot} session.`);
+
+                    // Trigger cool green effect
+                    setActivationEffect('in');
+                    confetti({
+                        particleCount: 150,
+                        spread: 70,
+                        origin: { y: 0.8 },
+                        colors: ['#ACC8A2', '#1a2517', '#ffffff']
+                    });
+                    setTimeout(() => setActivationEffect(null), 1500);
                 }
             }
         } else {
@@ -442,6 +465,10 @@ const Dashboard: React.FC = () => {
             setCurrentSession(null);
             handleTabChange('logs');
             pushNotification('time-out', `You timed out. Total hours today: ${newHours}`);
+
+            // Trigger cool red effect
+            setActivationEffect('out');
+            setTimeout(() => setActivationEffect(null), 1500);
         }
     };
 
@@ -785,6 +812,41 @@ const Dashboard: React.FC = () => {
                     {renderContent()}
                 </div>
             </div>
+
+            {/* activation effects */}
+            <AnimatePresence>
+                {activationEffect && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className={`fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center`}
+                        style={{
+                            background: activationEffect === 'in'
+                                ? 'radial-gradient(circle, rgba(172, 200, 162, 0.4) 0%, rgba(172, 200, 162, 0) 70%)'
+                                : 'radial-gradient(circle, rgba(239, 68, 68, 0.4) 0%, rgba(239, 68, 68, 0) 70%)'
+                        }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.8, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 1.1, opacity: 0, y: -20 }}
+                            className="bg-white/90 backdrop-blur-md px-8 py-4 rounded-3xl shadow-2xl border-4 flex flex-col items-center gap-2"
+                            style={{ borderColor: activationEffect === 'in' ? '#ACC8A2' : '#EF4444' }}
+                        >
+                            <div className="text-4xl">
+                                {activationEffect === 'in' ? '🎯' : '🛑'}
+                            </div>
+                            <h3 className="text-2xl font-black uppercase tracking-widest text-primary">
+                                {activationEffect === 'in' ? 'Timed In!' : 'Timed Out!'}
+                            </h3>
+                            <p className="text-xs font-bold text-primary/60 uppercase tracking-widest">
+                                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Bottom Navigation */}
             <NavBar
