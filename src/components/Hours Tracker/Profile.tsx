@@ -206,12 +206,12 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
     }
 
     return (
-        <div className="card space-y-6">
+        <div className="card glass-card space-y-6">
             {message && (
                 <div
                     className={`px-4 py-2 rounded-lg text-xs font-semibold text-center ${messageType === 'success'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                            : 'bg-red-50 text-red-600 border border-red-100'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                        : 'bg-red-50 text-red-600 border border-red-100'
                         }`}
                 >
                     {message}
@@ -221,7 +221,7 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
             <div>
                 <h2 className="text-2xl font-bold text-[#1a2517] mb-4">Profile</h2>
                 <div className="space-y-4">
-                    <div className="p-4 bg-gradient-to-br from-[#1a2517]/5 to-[#ACC8A2]/5 rounded-xl">
+                    <div className="p-4 bg-white/40 backdrop-blur-sm border border-white/20 rounded-xl">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="relative group">
                                 <div className="w-20 h-20 rounded-2xl bg-[#1a2517]/10 flex items-center justify-center text-[#1a2517] overflow-hidden border-2 border-[#1a2517]/5 group-hover:border-[#ACC8A2] transition-all duration-300 shadow-inner">
@@ -287,7 +287,7 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
                         </form>
                     </div>
 
-                    <div className="p-4 bg-gradient-to-br from-[#1a2517]/5 to-[#ACC8A2]/5 rounded-xl">
+                    <div className="p-4 bg-white/40 backdrop-blur-sm border border-white/20 rounded-xl">
                         <div className="flex items-center gap-3 mb-3">
                             <div className="w-10 h-10 rounded-full bg-[#1a2517]/10 flex items-center justify-center text-[#1a2517]">
                                 <Lock className="w-5 h-5" />
@@ -349,7 +349,7 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
             <div>
                 <h2 className="text-2xl font-bold text-[#1a2517] mb-4">OJT Settings</h2>
                 <div className="space-y-4">
-                    <div className="p-4 bg-gradient-to-br from-[#1a2517]/5 to-[#ACC8A2]/5 rounded-xl">
+                    <div className="p-4 bg-white/40 backdrop-blur-sm border border-white/20 rounded-xl">
                         <p className="text-sm text-[#1a2517]/70 mb-1">Company</p>
                         <div className="flex items-center justify-between">
                             <p className="text-lg font-bold text-[#1a2517]">{companyName}</p>
@@ -365,13 +365,13 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
                             )}
                         </div>
                     </div>
-                    <div className="p-4 bg-gradient-to-br from-[#1a2517]/5 to-[#ACC8A2]/5 rounded-xl">
+                    <div className="p-4 bg-white/40 backdrop-blur-sm border border-white/20 rounded-xl">
                         <p className="text-sm text-[#1a2517]/70 mb-1">Location</p>
                         <p className="text-sm font-medium text-[#1a2517] opacity-70 italic">
                             {companyLocation || 'No location set'}
                         </p>
                     </div>
-                    <div className="p-4 bg-gradient-to-br from-[#1a2517]/5 to-[#ACC8A2]/5 rounded-xl">
+                    <div className="p-4 bg-white/40 backdrop-blur-sm border border-white/20 rounded-xl">
                         <p className="text-sm text-[#1a2517]/70 mb-1">Total Hours Required</p>
                         <p className="text-lg font-bold text-[#1a2517]">{totalRequiredHours} hours</p>
                     </div>

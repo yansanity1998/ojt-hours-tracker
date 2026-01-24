@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { BarChart2, CheckCircle2, Rocket, Star, Trophy, Award, Lock } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 interface HoursProgressProps {
     totalRequired: number;
@@ -25,7 +26,6 @@ const HoursProgress: React.FC<HoursProgressProps> = ({
 }) => {
     const progressPercentage = Math.min((completed / totalRequired) * 100, 100);
 
-    // Achievement badges based on color palette
     const badges: Badge[] = [
         {
             id: 1,
@@ -71,8 +71,25 @@ const HoursProgress: React.FC<HoursProgressProps> = ({
 
     const isBadgeUnlocked = (threshold: number) => progressPercentage >= threshold;
 
+    const hasMetRequirement = left <= 0;
+    const hasCelebratedRef = useRef(false);
+
+    useEffect(() => {
+        if (hasMetRequirement && !hasCelebratedRef.current) {
+            hasCelebratedRef.current = true;
+            confetti({
+                particleCount: 180,
+                spread: 80,
+                origin: { y: 0.6 },
+                colors: ['#ACC8A2', '#FFB88C', '#FFE68C', '#1a2517']
+            });
+        } else if (!hasMetRequirement) {
+            hasCelebratedRef.current = false;
+        }
+    }, [hasMetRequirement]);
+
     return (
-        <div className="card">
+        <div className="card glass-card">
             <div className="flex items-center gap-3 mb-6 sm:mb-8">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/5">
                     <BarChart2 className="w-5 h-5 sm:w-6 sm:h-6" />

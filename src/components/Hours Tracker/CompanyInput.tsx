@@ -282,7 +282,7 @@ const CompanyInput: React.FC<CompanyInputProps> = ({
     return (
         <div
             ref={cardRef}
-            className={`card overflow-hidden transition-all duration-500 ease-out ${isDragging ? 'cursor-grabbing' : 'cursor-grab'
+            className={`card glass-card overflow-hidden transition-all duration-500 ease-out ${isDragging ? 'cursor-grabbing' : 'cursor-grab'
                 }`}
             style={{
                 animationDelay: '0.1s',

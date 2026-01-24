@@ -88,7 +88,7 @@ const Notification: React.FC<NotificationProps> = ({ notifications, onClear }) =
                     No notifications yet.
                 </div>
             ) : (
-                <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1 pb-1">
+                <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1 pb-1">
                     {notifications.slice(0, 20).map((item) => (
                         <div
                             key={item.id}

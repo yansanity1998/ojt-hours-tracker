@@ -344,7 +344,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
     };
 
     return (
-        <div className="card">
+        <div className="card glass-card">
             <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between mb-6 sm:mb-8 gap-4">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/5 shrink-0">
@@ -539,7 +539,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                     notes.slice(0, 3).map((note) => (
                         <div
                             key={note.id}
-                            className="p-4 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all duration-300"
+                            className="p-4 bg-white/40 backdrop-blur-sm border border-white/20 rounded-xl hover:shadow-md transition-all duration-300"
                         >
                             {editingNoteId === note.id ? (
                                 <>

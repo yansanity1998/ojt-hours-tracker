@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import mainImage from '../../assets/image/calendar.jpg';
+import internImage from '../../assets/image/intern.jpg';
 import { User, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase/supabase';
@@ -77,7 +78,18 @@ const Register: React.FC<RegisterProps> = ({ session }) => {
     };
 
     return (
-        <div className="min-h-screen bg-[#4b5d2a] flex flex-col items-center justify-center p-0 sm:p-6 font-sans text-white relative overflow-hidden">
+        <div className="min-h-screen flex flex-col items-center justify-center p-0 sm:p-6 font-sans text-white relative overflow-hidden">
+            {/* Background Image Layer */}
+            <div
+                className="absolute inset-0 z-0 bg-cover bg-center"
+                style={{
+                    backgroundImage: `url(${internImage})`,
+                    filter: 'blur(2px) brightness(0.8)',
+                    transform: 'scale(1.1)', // To avoid blurred edges
+                }}
+            />
+            {/* Dark Green Overlay */}
+            <div className="absolute inset-0 z-0 bg-[#4b5d2a]/70" />
 
             <Toast
                 message="Account successfully created! Redirecting..."
@@ -86,7 +98,7 @@ const Register: React.FC<RegisterProps> = ({ session }) => {
                 onClose={() => setShowToast(false)}
             />
 
-            <div className="w-full max-w-md rounded-none sm:rounded-3xl overflow-hidden flex flex-col justify-center py-8 sm:py-10">
+            <div className="w-full max-w-md rounded-none sm:rounded-3xl overflow-hidden flex flex-col justify-center py-8 sm:py-10 z-10">
 
                 {/* Header Section with Image - slightly smaller on register to fit fields */}
                 <div className="flex flex-col items-center pt-8 pb-4 px-8">

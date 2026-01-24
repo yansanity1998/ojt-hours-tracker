@@ -12,6 +12,7 @@ import { supabase } from '../../supabase/supabase';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Bell, MapPin } from 'lucide-react';
 import logo from '../../assets/image/calendar.jpg';
+import intern2 from '../../assets/image/intern2.jpg';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
@@ -702,8 +703,23 @@ const Dashboard: React.FC = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#F8F9FA] via-gray-50 to-[#F8F9FA] pb-24">
             {/* Mobile App Header */}
-            <div className="relative z-[60] bg-gradient-to-br from-[#1a2517] to-[#4A5D44] px-4 pt-6 pb-8 sm:pb-10 rounded-b-[2rem] shadow-xl fade-slide-down">
-                <div className="max-w-md mx-auto">
+            <div className="relative px-4 pt-6 pb-8 sm:pb-10 rounded-b-[2rem] shadow-xl selection:bg-white/30">
+                {/* Background Mask Wrapper */}
+                <div className="absolute inset-0 rounded-b-[2rem] overflow-hidden z-0">
+                    {/* Background Image Layer */}
+                    <div
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{
+                            backgroundImage: `url(${intern2})`,
+                            filter: 'blur(2px) brightness(0.8)',
+                            transform: 'scale(1.1)', // To avoid blurred edges
+                        }}
+                    />
+                    {/* Dark Green Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#1a2517]/70 to-[#4A5D44]/70" />
+                </div>
+
+                <div className="max-w-md mx-auto relative z-30">
                     {/* Top bar */}
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
@@ -744,7 +760,7 @@ const Dashboard: React.FC = () => {
                                     {currentTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </p>
                             </div>
-                            <div className="relative">
+                            <div className="relative z-[100]">
                                 <button
                                     onClick={handleBellClick}
                                     className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-all"
@@ -763,7 +779,7 @@ const Dashboard: React.FC = () => {
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                             transition={{ duration: 0.2, ease: "easeOut" }}
-                                            className="absolute right-0 mt-3 w-72 sm:w-80 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 z-[110] overflow-hidden"
+                                            className="absolute top-full right-0 mt-3 w-72 sm:w-80 bg-white/90 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/40 z-[9999] overflow-hidden origin-top-right"
                                         >
                                             <Notification
                                                 notifications={notifications}
@@ -776,32 +792,32 @@ const Dashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Quick Stats Card */}
-                    <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 sm:p-5 shadow-lg overflow-hidden">
-                        <div className="grid grid-cols-3 divide-x divide-gray-100/50">
+                    {/* Quick Stats Card - Glassmorphism Effect */}
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 shadow-2xl border border-white/20 overflow-hidden mt-2">
+                        <div className="grid grid-cols-3 divide-x divide-white/10">
                             <div className="text-center px-1">
-                                <p className="text-2xl sm:text-3xl font-black text-primary tabular-nums leading-none tracking-tight">
+                                <p className="text-2xl sm:text-3xl font-black text-white tabular-nums leading-none tracking-tight">
                                     {Math.round(totalHoursCompleted)}
                                 </p>
-                                <p className="text-[8px] sm:text-[9px] font-black text-primary/40 uppercase tracking-[0.15em] mt-2 flex flex-col items-center">
+                                <p className="text-[8px] sm:text-[9px] font-black text-white/50 uppercase tracking-[0.15em] mt-2 flex flex-col items-center">
                                     <span className="leading-none">Hours</span>
                                     <span className="leading-none mt-0.5">Logged</span>
                                 </p>
                             </div>
                             <div className="text-center px-1">
-                                <p className="text-2xl sm:text-3xl font-black tabular-nums leading-none tracking-tight" style={{ color: '#FF743D' }}>
+                                <p className="text-2xl sm:text-3xl font-black tabular-nums leading-none tracking-tight" style={{ color: '#FFB88C' }}>
                                     {Math.round(hoursLeft)}
                                 </p>
-                                <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.15em] mt-2 flex flex-col items-center" style={{ color: 'rgba(255, 116, 61, 0.5)' }}>
+                                <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.15em] mt-2 flex flex-col items-center" style={{ color: 'rgba(255, 184, 140, 0.6)' }}>
                                     <span className="leading-none">Hours</span>
                                     <span className="leading-none mt-0.5">Left</span>
                                 </p>
                             </div>
                             <div className="text-center px-1">
-                                <p className="text-2xl sm:text-3xl font-black text-[#475569] tabular-nums leading-none tracking-tight">
+                                <p className="text-2xl sm:text-3xl font-black text-white tabular-nums leading-none tracking-tight">
                                     {Math.round(totalRequiredHours)}
                                 </p>
-                                <p className="text-[8px] sm:text-[9px] font-black text-[#475569]/50 uppercase tracking-[0.15em] mt-2 flex flex-col items-center">
+                                <p className="text-[8px] sm:text-[9px] font-black text-white/50 uppercase tracking-[0.15em] mt-2 flex flex-col items-center">
                                     <span className="leading-none">Hours</span>
                                     <span className="leading-none mt-0.5">Target</span>
                                 </p>
@@ -812,7 +828,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Main Content */}
-            <div className="max-w-md mx-auto px-4 -mt-4 pb-12 overflow-hidden">
+            <div className="max-w-md mx-auto px-4 -mt-4 pb-12 overflow-hidden relative z-20">
                 <div
                     key={activeTab}
                     className={animationClass}
