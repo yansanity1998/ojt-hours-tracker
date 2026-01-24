@@ -702,7 +702,7 @@ const Dashboard: React.FC = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#F8F9FA] via-gray-50 to-[#F8F9FA] pb-24">
             {/* Mobile App Header */}
-            <div className="bg-gradient-to-br from-[#1a2517] to-[#4A5D44] px-4 pt-6 pb-8 sm:pb-10 rounded-b-[2rem] shadow-xl fade-slide-down">
+            <div className="relative z-[60] bg-gradient-to-br from-[#1a2517] to-[#4A5D44] px-4 pt-6 pb-8 sm:pb-10 rounded-b-[2rem] shadow-xl fade-slide-down">
                 <div className="max-w-md mx-auto">
                     {/* Top bar */}
                     <div className="flex items-center justify-between mb-6">
@@ -756,14 +756,22 @@ const Dashboard: React.FC = () => {
                                         {notifications.length > 9 ? '9+' : notifications.length}
                                     </span>
                                 )}
-                                {showNotifications && (
-                                    <div className="absolute right-0 mt-3 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50">
-                                        <Notification
-                                            notifications={notifications}
-                                            onClear={handleClearNotifications}
-                                        />
-                                    </div>
-                                )}
+                                <AnimatePresence>
+                                    {showNotifications && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            transition={{ duration: 0.2, ease: "easeOut" }}
+                                            className="absolute right-0 mt-3 w-72 sm:w-80 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 z-[110] overflow-hidden"
+                                        >
+                                            <Notification
+                                                notifications={notifications}
+                                                onClear={handleClearNotifications}
+                                            />
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </div>
                     </div>

@@ -57,7 +57,7 @@ const Notification: React.FC<NotificationProps> = ({ notifications, onClear }) =
     };
 
     return (
-        <div className="p-3 sm:p-4">
+        <div className="p-2.5 sm:p-3.5">
             <div className="flex items-center justify-between mb-2 sm:mb-3">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1a2517]/10 to-[#ACC8A2]/10 flex items-center justify-center text-[#1a2517] shadow-sm">
@@ -88,8 +88,8 @@ const Notification: React.FC<NotificationProps> = ({ notifications, onClear }) =
                     No notifications yet.
                 </div>
             ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1 pb-1">
-                    {notifications.slice(0, 10).map((item) => (
+                <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1 pb-1">
+                    {notifications.slice(0, 20).map((item) => (
                         <div
                             key={item.id}
                             className="flex items-start justify-between gap-3 px-2 py-1.5 rounded-xl hover:bg-gray-50 transition-all duration-150"
