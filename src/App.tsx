@@ -57,7 +57,7 @@ const App: React.FC = () => {
         />
         <Route
           path="/dashboard/*"
-          element={session ? <Dashboard /> : <Navigate to="/login" replace />}
+          element={session ? <Dashboard /> : <Navigate to="/" replace />}
         />
         <Route path="/landingpage" element={<LandingPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

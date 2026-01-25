@@ -89,7 +89,7 @@ const Register: React.FC<RegisterProps> = ({ session }) => {
                 }}
             />
             {/* Dark Green Overlay */}
-            <div className="absolute inset-0 z-0 bg-[#4b5d2a]/70" />
+            <div className="absolute inset-0 z-0 bg-[#4b5d2a]/90" />
 
             <Toast
                 message="Account successfully created! Redirecting..."

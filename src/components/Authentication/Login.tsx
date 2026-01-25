@@ -51,7 +51,7 @@ const Login = () => {
                 }}
             />
             {/* Dark Green Overlay */}
-            <div className="absolute inset-0 z-0 bg-[#4b5d2a]/70" />
+            <div className="absolute inset-0 z-0 bg-[#4b5d2a]/90" />
 
             <div className="w-full max-w-md rounded-none sm:rounded-3xl overflow-hidden flex flex-col justify-center py-8 sm:py-10 z-10">
 

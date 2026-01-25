@@ -599,7 +599,7 @@ const Dashboard: React.FC = () => {
                 date: data.date,
                 // Use empty strings locally so inputs show up immediately for manual editing
                 amIn: '',
-                amOut: '',
+                amOut: '',  
                 pmIn: '',
                 pmOut: '',
                 hours: parseFloat(data.hours)
@@ -611,12 +611,63 @@ const Dashboard: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
-                <div className="flex flex-col items-center gap-6">
-                    <div className="w-20 h-20 rounded-full overflow-hidden animate-roll" style={{ animationDuration: '2s' }}>
-                        <img src={logo} alt="Loading..." className="w-full h-full object-cover" />
+            <div className="min-h-screen bg-gradient-to-br from-[#F8F9FA] via-gray-50 to-[#F8F9FA] pb-24">
+                <div className="relative px-4 pt-6 pb-8 sm:pb-10 rounded-b-[2rem] shadow-xl selection:bg-white/30 overflow-hidden">
+                    <div className="absolute inset-0 rounded-b-[2rem] overflow-hidden z-0">
+                        <div
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{
+                                backgroundImage: `url(${intern2})`,
+                                filter: 'blur(2px) brightness(0.8)',
+                                transform: 'scale(1.1)',
+                            }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#1a2517]/70 to-[#4A5D44]/70" />
                     </div>
-                    <p className="text-[#1a2517] font-bold animate-pulse tracking-widest text-sm uppercase">Syncing Data...</p>
+
+                    <div className="max-w-md mx-auto relative z-30">
+                        <div className="flex items-center justify-between mb-6 animate-pulse">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/40" />
+                                <div className="space-y-2">
+                                    <div className="h-4 w-28 sm:w-32 bg-white/40 rounded-full" />
+                                    <div className="h-3 w-40 sm:w-48 bg-white/25 rounded-full" />
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="flex flex-col items-end gap-1">
+                                    <div className="h-3 w-24 bg-white/40 rounded-full" />
+                                    <div className="h-2.5 w-20 bg-white/25 rounded-full" />
+                                </div>
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/30" />
+                            </div>
+                        </div>
+
+                        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 shadow-2xl border border-white/20 overflow-hidden mt-2 animate-pulse">
+                            <div className="grid grid-cols-3 divide-x divide-white/10">
+                                <div className="px-2 space-y-3 flex flex-col items-center">
+                                    <div className="h-6 w-10 bg-white/70 rounded-md" />
+                                    <div className="h-3 w-16 bg-white/30 rounded-full" />
+                                </div>
+                                <div className="px-2 space-y-3 flex flex-col items-center">
+                                    <div className="h-6 w-10 bg-white/60 rounded-md" />
+                                    <div className="h-3 w-16 bg-white/25 rounded-full" />
+                                </div>
+                                <div className="px-2 space-y-3 flex flex-col items-center">
+                                    <div className="h-6 w-10 bg-white/70 rounded-md" />
+                                    <div className="h-3 w-16 bg-white/30 rounded-full" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="max-w-md mx-auto px-4 -mt-4 pb-12 overflow-hidden relative z-20">
+                    <div className="space-y-4">
+                        <div className="h-32 sm:h-36 rounded-2xl bg-white shadow-sm border border-gray-100 animate-pulse" />
+                        <div className="h-32 sm:h-36 rounded-2xl bg-white shadow-sm border border-gray-100 animate-pulse" />
+                        <div className="h-32 sm:h-36 rounded-2xl bg-white shadow-sm border border-gray-100 animate-pulse" />
+                    </div>
                 </div>
             </div>
         );

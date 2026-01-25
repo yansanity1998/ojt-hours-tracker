@@ -34,7 +34,7 @@ const LandingPage = () => {
                 }}
             />
             {/* Dark Green Overlay */}
-            <div className="absolute inset-0 z-0 bg-[#4b5d2a]/70" />
+            <div className="absolute inset-0 z-0 bg-[#4b5d2a]/90" />
 
             {/* Center Content */}
             <div className="flex-1 flex flex-col items-center justify-center w-full z-10">
