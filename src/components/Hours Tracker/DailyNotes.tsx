@@ -12,7 +12,7 @@ interface Note {
     id: string;
     date: string;
     content: string;
-    imageUrl?: string;
+    imageUrls?: string[];
     createdAt: string;
 }
 
@@ -29,8 +29,8 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
     const [editNoteContent, setEditNoteContent] = useState('');
     const [uploading, setUploading] = useState(false);
     const [viewingAll, setViewingAll] = useState(false);
-    const [newImage, setNewImage] = useState<File | null>(null);
-    const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
+    const [newImages, setNewImages] = useState<File[]>([]);
+    const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
 
     // Camera states
     const [showCamera, setShowCamera] = useState(false);
@@ -101,6 +101,19 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
         };
     }, [viewingAll]);
 
+    const parseImageUrls = (raw: string | null): string[] => {
+        if (!raw) return [];
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed.filter((u): u is string => typeof u === 'string');
+            }
+        } catch {
+            // Fallback: legacy single URL string
+        }
+        return [raw];
+    };
+
     const fetchNotes = async () => {
         if (!userId) return;
 
@@ -115,23 +128,41 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                 id: note.id,
                 date: note.date,
                 content: note.content,
-                imageUrl: note.image_url,
+                imageUrls: parseImageUrls(note.image_url),
                 createdAt: note.created_at
             })));
         }
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setNewImage(file);
+        if (!e.target.files) return;
+
+        const filesArray = Array.from(e.target.files);
+        const availableSlots = 3 - newImages.length;
+
+        if (availableSlots <= 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Image limit reached',
+                text: 'You can attach up to 3 images per daily note.',
+                confirmButtonColor: '#1a2517'
+            });
+            return;
+        }
+
+        const selected = filesArray.slice(0, availableSlots);
+
+        selected.forEach((file) => {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setNewImagePreview(reader.result as string);
+                setNewImagePreviews(prev => [...prev, reader.result as string]);
             };
             reader.readAsDataURL(file);
-            setShowCamera(false);
-        }
+        });
+
+        setNewImages(prev => [...prev, ...selected]);
+        setShowCamera(false);
+        e.target.value = '';
     };
 
     // Helper to convert dataURL to File
@@ -147,13 +178,28 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
 
     const capturePhoto = useCallback(async () => {
         const imageSrc = webcamRef.current?.getScreenshot();
-        if (imageSrc) {
-            setNewImagePreview(imageSrc);
-            const file = await urlToFile(imageSrc, 'camera-capture.jpg', 'image/jpeg');
-            setNewImage(file);
-            setShowCamera(false);
+        if (!imageSrc) return;
+
+        if (newImages.length >= 3) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Image limit reached',
+                text: 'You can attach up to 3 images per daily note.',
+                confirmButtonColor: '#1a2517'
+            });
+            return;
         }
-    }, [webcamRef]);
+
+        const file = await urlToFile(imageSrc, 'camera-capture.jpg', 'image/jpeg');
+        setNewImagePreviews(prev => [...prev, imageSrc]);
+        setNewImages(prev => [...prev, file]);
+        setShowCamera(false);
+    }, [webcamRef, newImages]);
+
+    const handleRemovePreview = (index: number) => {
+        setNewImagePreviews(prev => prev.filter((_, i) => i !== index));
+        setNewImages(prev => prev.filter((_, i) => i !== index));
+    };
 
     const uploadImage = async (file: File): Promise<string | null> => {
         if (!userId) return null;
@@ -198,20 +244,28 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
         }
 
         setUploading(true);
-        let imageUrl = null;
+        let imageUrls: string[] = [];
 
-        if (newImage) {
-            imageUrl = await uploadImage(newImage);
+        if (newImages.length > 0) {
+            for (const file of newImages) {
+                const url = await uploadImage(file);
+                if (url) imageUrls.push(url);
+            }
+        }
+
+        const payload: any = {
+            user_id: userId,
+            date: currentDate,
+            content: newNoteContent.trim(),
+        };
+
+        if (imageUrls.length > 0) {
+            payload.image_url = JSON.stringify(imageUrls);
         }
 
         const { data, error } = await supabase
             .from('ojt_daily_notes')
-            .insert([{
-                user_id: userId,
-                date: currentDate,
-                content: newNoteContent.trim(),
-                image_url: imageUrl
-            }])
+            .insert([payload])
             .select()
             .single();
 
@@ -220,12 +274,12 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                 id: data.id,
                 date: data.date,
                 content: data.content,
-                imageUrl: data.image_url,
+                imageUrls,
                 createdAt: data.created_at
             }, ...prev]);
             setNewNoteContent('');
-            setNewImage(null);
-            setNewImagePreview(null);
+            setNewImages([]);
+            setNewImagePreviews([]);
             setShowCamera(false);
             setIsAddingNote(false);
             Swal.fire({
@@ -450,22 +504,23 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
-                        ) : newImagePreview ? (
-                            <div className="relative inline-block">
-                                <img
-                                    src={newImagePreview}
-                                    alt="Preview"
-                                    className="h-32 w-full object-cover rounded-lg border border-gray-200"
-                                />
-                                <button
-                                    onClick={() => {
-                                        setNewImage(null);
-                                        setNewImagePreview(null);
-                                    }}
-                                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow-sm"
-                                >
-                                    <X className="w-3 h-3" />
-                                </button>
+                        ) : newImagePreviews.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                                {newImagePreviews.map((preview, index) => (
+                                    <div key={index} className="relative inline-block">
+                                        <img
+                                            src={preview}
+                                            alt={`Preview ${index + 1}`}
+                                            className="h-32 w-32 object-cover rounded-lg border border-gray-200"
+                                        />
+                                        <button
+                                            onClick={() => handleRemovePreview(index)}
+                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow-sm"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
                         ) : null}
                     </div>
@@ -493,6 +548,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                 <input
                                     type="file"
                                     accept="image/*"
+                                    multiple
                                     className="hidden"
                                     onChange={handleImageChange}
                                 />
@@ -512,8 +568,8 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                 onClick={() => {
                                     setIsAddingNote(false);
                                     setNewNoteContent('');
-                                    setNewImage(null);
-                                    setNewImagePreview(null);
+                                    setNewImages([]);
+                                    setNewImagePreviews([]);
                                     setShowCamera(false);
                                 }}
                                 disabled={uploading}
@@ -600,17 +656,22 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                     <p className="text-sm text-primary/80 leading-relaxed whitespace-pre-wrap">
                                         {note.content}
                                     </p>
-                                    {/* Display uploaded image proof */}
-                                    {note.imageUrl && (
+                                    {/* Display uploaded image proofs */}
+                                    {note.imageUrls && note.imageUrls.length > 0 && (
                                         <div className="mt-3">
                                             <p className="text-[10px] font-bold text-[#1a2517]/40 uppercase tracking-widest mb-1.5">
                                                 Proof of Work
                                             </p>
-                                            <img
-                                                src={note.imageUrl}
-                                                alt="Proof of work"
-                                                className="h-32 rounded-lg border border-gray-100 object-cover hover:h-auto hover:w-full transition-all duration-300 cursor-zoom-in"
-                                            />
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {note.imageUrls.slice(0, 3).map((url, index) => (
+                                                    <img
+                                                        key={index}
+                                                        src={url}
+                                                        alt={`Proof of work ${index + 1}`}
+                                                        className="h-24 w-full rounded-lg border border-gray-100 object-cover cursor-zoom-in"
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </>
@@ -671,12 +732,17 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                                 </div>
                                             </div>
                                             <p className="text-[#1a2517] whitespace-pre-wrap leading-relaxed text-xs sm:text-sm">{note.content}</p>
-                                            {note.imageUrl && (
-                                                <img
-                                                    src={note.imageUrl}
-                                                    alt="Proof"
-                                                    className="mt-3 h-40 rounded-lg border border-gray-200 object-cover"
-                                                />
+                                            {note.imageUrls && note.imageUrls.length > 0 && (
+                                                <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                    {note.imageUrls.slice(0, 3).map((url, index) => (
+                                                        <img
+                                                            key={index}
+                                                            src={url}
+                                                            alt={`Proof ${index + 1}`}
+                                                            className="h-28 w-28 rounded-lg border border-gray-200 object-cover"
+                                                        />
+                                                    ))}
+                                                </div>
                                             )}
                                         </div>
                                     ))}
@@ -752,15 +818,22 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                         {note.content}
                                     </td>
                                     <td style={{ border: '1px solid #000000', padding: '10px', verticalAlign: 'top', textAlign: 'center' }}>
-                                        {note.imageUrl ? (
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                                <img
-                                                    src={note.imageUrl}
-                                                    alt="Proof"
-                                                    style={{ width: '100%', height: 'auto', maxHeight: '120px', objectFit: 'contain', borderRadius: '4px', border: '1px solid #eeeeee' }}
-                                                    crossOrigin="anonymous"
-                                                />
-                                                <span style={{ fontSize: '7pt', color: '#999999', marginTop: '5px', textTransform: 'uppercase' }}>Verified Proof</span>
+                                        {note.imageUrls && note.imageUrls.length > 0 ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '4px' }}>
+                                                    {note.imageUrls.slice(0, 3).map((url, index) => (
+                                                        <img
+                                                            key={index}
+                                                            src={url}
+                                                            alt={`Proof ${index + 1}`}
+                                                            style={{ width: '48%', height: 'auto', maxHeight: '80px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #eeeeee' }}
+                                                            crossOrigin="anonymous"
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <span style={{ fontSize: '7pt', color: '#999999', marginTop: '2px', textTransform: 'uppercase' }}>
+                                                    Verified Proof{note.imageUrls.length > 1 ? 's' : ''}
+                                                </span>
                                             </div>
                                         ) : (
                                             <span style={{ color: '#cccccc', fontStyle: 'italic', fontSize: '8pt' }}>No image attached</span>
