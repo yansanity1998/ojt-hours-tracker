@@ -179,10 +179,21 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                         const amHours = getSessionHours(entry.amIn, entry.amOut);
                         const pmHours = getSessionHours(entry.pmIn, entry.pmOut);
 
+                        let cardColorClasses = '';
+                        if (hasAm && hasPm) {
+                            cardColorClasses = 'bg-[#F3F7EF] border-[#C5D8BB]'; // soft green tint for full day
+                        } else if (hasAm) {
+                            cardColorClasses = 'bg-amber-50/60 border-amber-100'; // light warm tint for morning
+                        } else if (hasPm) {
+                            cardColorClasses = 'bg-orange-50/60 border-orange-100'; // light orange tint for afternoon
+                        } else {
+                            cardColorClasses = 'bg-white/40 border-white/20'; // default subtle card
+                        }
+
                         return (
                             <div
                                 key={entry.id}
-                                className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-white/20 hover:border-[#ACC8A2] transition-colors relative group"
+                                className={`backdrop-blur-sm rounded-2xl p-4 shadow-sm border hover:border-[#ACC8A2] transition-colors relative group ${cardColorClasses}`}
                             >
                                 <button
                                     onClick={() => onDeleteEntry(entry.id)}
@@ -205,7 +216,7 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                                     </div>
                                     <div className="px-2.5 py-1 bg-[#1a2517]/5 rounded-lg sm:rounded-full">
                                         <span className="text-[10px] sm:text-xs font-bold text-[#1a2517] whitespace-nowrap">
-                                            Total: {entry.hours}h
+                                            Total: {entry.hours} h
                                         </span>
                                     </div>
                                 </div>
@@ -220,7 +231,7 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                                             </div>
                                             {hasAm && (
                                                 <div className="px-2 py-0.5 bg-white rounded text-[10px] font-bold shadow-sm text-[#1a2517]">
-                                                    {amHours}h
+                                                    {amHours} h
                                                 </div>
                                             )}
                                         </div>
@@ -275,7 +286,7 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                                             </div>
                                             {hasPm && (
                                                 <div className="px-2 py-0.5 bg-white rounded text-[10px] font-bold shadow-sm text-[#1a2517]">
-                                                    {pmHours}h
+                                                    {pmHours} h
                                                 </div>
                                             )}
                                         </div>
@@ -401,14 +412,14 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                                     <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.amOut || '-- : --'}</td>
                                     <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.pmIn || '-- : --'}</td>
                                     <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.pmOut || '-- : --'}</td>
-                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center', fontWeight: 'bold', backgroundColor: '#fcfcfc' }}>{entry.hours}h</td>
+                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center', fontWeight: 'bold', backgroundColor: '#fcfcfc' }}>{entry.hours} h</td>
                                 </tr>
                             ))}
                             {/* Grand Total Row */}
                             <tr style={{ backgroundColor: '#eeeeee' }}>
                                 <td colSpan={5} style={{ border: '1px solid #000000', padding: '15px 20px', textAlign: 'right', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '11pt' }}>Grand Total Hours:</td>
                                 <td style={{ border: '1px solid #000000', padding: '15px 10px', textAlign: 'center', fontWeight: '900', fontSize: '13pt' }}>
-                                    {entries.reduce((sum, e) => sum + e.hours, 0)}h
+                                    {entries.reduce((sum, e) => sum + e.hours, 0)} h
                                 </td>
                             </tr>
                         </tbody>

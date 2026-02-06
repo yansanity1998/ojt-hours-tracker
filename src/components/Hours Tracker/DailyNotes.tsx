@@ -31,6 +31,10 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
     const [viewingAll, setViewingAll] = useState(false);
     const [newImages, setNewImages] = useState<File[]>([]);
     const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
+    const [editNoteDate, setEditNoteDate] = useState('');
+    const [editExistingImageUrls, setEditExistingImageUrls] = useState<string[]>([]);
+    const [editImages, setEditImages] = useState<File[]>([]);
+    const [editImagePreviews, setEditImagePreviews] = useState<string[]>([]);
 
     // Camera states
     const [showCamera, setShowCamera] = useState(false);
@@ -165,6 +169,37 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
         e.target.value = '';
     };
 
+    const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files) return;
+
+        const filesArray = Array.from(e.target.files);
+        const currentCount = editExistingImageUrls.length + editImages.length;
+        const availableSlots = 3 - currentCount;
+
+        if (availableSlots <= 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Image limit reached',
+                text: 'You can attach up to 3 images per daily note.',
+                confirmButtonColor: '#1a2517'
+            });
+            return;
+        }
+
+        const selected = filesArray.slice(0, availableSlots);
+
+        selected.forEach((file) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setEditImagePreviews(prev => [...prev, reader.result as string]);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        setEditImages(prev => [...prev, ...selected]);
+        e.target.value = '';
+    };
+
     // Helper to convert dataURL to File
     const urlToFile = async (url: string, filename: string, mimeType: string): Promise<File> => {
         const res = await fetch(url);
@@ -199,6 +234,15 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
     const handleRemovePreview = (index: number) => {
         setNewImagePreviews(prev => prev.filter((_, i) => i !== index));
         setNewImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleRemoveEditExistingImage = (index: number) => {
+        setEditExistingImageUrls(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleRemoveEditNewImage = (index: number) => {
+        setEditImagePreviews(prev => prev.filter((_, i) => i !== index));
+        setEditImages(prev => prev.filter((_, i) => i !== index));
     };
 
     const uploadImage = async (file: File): Promise<string | null> => {
@@ -313,17 +357,80 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
     const handleUpdateNote = async (noteId: string) => {
         if (!editNoteContent.trim()) return;
 
+        if (!editNoteDate) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Date required',
+                text: 'Please select a date for this note.',
+                confirmButtonColor: '#1a2517',
+                width: '90%',
+                customClass: {
+                    popup: 'sm:max-w-md'
+                }
+            });
+            return;
+        }
+
+        const hasDuplicateDate = notes.some(note => note.date === editNoteDate && note.id !== noteId);
+        if (hasDuplicateDate) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Duplicate date',
+                text: 'You already have a note for this date. Please choose another date.',
+                confirmButtonColor: '#1a2517',
+                width: '90%',
+                customClass: {
+                    popup: 'sm:max-w-md'
+                }
+            });
+            return;
+        }
+
+        setUploading(true);
+
+        let uploadedImageUrls: string[] = [];
+        if (editImages.length > 0) {
+            for (const file of editImages) {
+                const url = await uploadImage(file);
+                if (url) uploadedImageUrls.push(url);
+            }
+        }
+
+        const finalImageUrls = [...editExistingImageUrls, ...uploadedImageUrls];
+
+        const payload: any = {
+            content: editNoteContent.trim(),
+            date: editNoteDate,
+        };
+
+        if (finalImageUrls.length > 0) {
+            payload.image_url = JSON.stringify(finalImageUrls);
+        } else {
+            payload.image_url = null;
+        }
+
         const { error } = await supabase
             .from('ojt_daily_notes')
-            .update({ content: editNoteContent.trim() })
+            .update(payload)
             .eq('id', noteId);
 
+        setUploading(false);
+
         if (!error) {
-            setNotes(prev => prev.map(note =>
-                note.id === noteId ? { ...note, content: editNoteContent.trim() } : note
-            ));
+            setNotes(prev => {
+                const updated = prev.map(note =>
+                    note.id === noteId
+                        ? { ...note, content: editNoteContent.trim(), date: editNoteDate, imageUrls: finalImageUrls }
+                        : note
+                );
+                return [...updated].sort((a, b) => b.date.localeCompare(a.date));
+            });
             setEditingNoteId(null);
             setEditNoteContent('');
+            setEditNoteDate('');
+            setEditExistingImageUrls([]);
+            setEditImages([]);
+            setEditImagePreviews([]);
             Swal.fire({
                 icon: 'success',
                 title: 'Note updated',
@@ -385,11 +492,19 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
     const startEditing = (note: Note) => {
         setEditingNoteId(note.id);
         setEditNoteContent(note.content);
+        setEditNoteDate(note.date);
+        setEditExistingImageUrls(note.imageUrls || []);
+        setEditImages([]);
+        setEditImagePreviews([]);
     };
 
     const cancelEditing = () => {
         setEditingNoteId(null);
         setEditNoteContent('');
+        setEditNoteDate('');
+        setEditExistingImageUrls([]);
+        setEditImages([]);
+        setEditImagePreviews([]);
     };
 
     const formatDate = (dateString: string) => {
@@ -601,9 +716,12 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                 <>
                                     <div className="flex items-center gap-2 mb-3">
                                         <Calendar className="w-3.5 h-3.5 text-[#1a2517]/60" />
-                                        <span className="text-xs font-bold text-[#1a2517]/60 uppercase tracking-wide">
-                                            {formatDate(note.date)}
-                                        </span>
+                                        <input
+                                            type="date"
+                                            value={editNoteDate}
+                                            onChange={(e) => setEditNoteDate(e.target.value)}
+                                            className="text-xs font-bold text-[#1a2517]/80 bg-white border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-secondary-sage/50"
+                                        />
                                     </div>
                                     <textarea
                                         value={editNoteContent}
@@ -612,13 +730,68 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                         rows={3}
                                         autoFocus
                                     />
+                                    {(editExistingImageUrls.length > 0 || editImagePreviews.length > 0) && (
+                                        <div className="mt-3">
+                                            <p className="text-[10px] font-bold text-[#1a2517]/40 uppercase tracking-widest mb-1.5">
+                                                Proof of Work
+                                            </p>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {editExistingImageUrls.map((url, index) => (
+                                                    <div key={`existing-${index}`} className="relative">
+                                                        <img
+                                                            src={url}
+                                                            alt={`Proof of work ${index + 1}`}
+                                                            className="h-24 w-full rounded-lg border border-gray-100 object-cover"
+                                                        />
+                                                        <button
+                                                            onClick={() => handleRemoveEditExistingImage(index)}
+                                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow-sm"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                {editImagePreviews.map((preview, index) => (
+                                                    <div key={`new-${index}`} className="relative">
+                                                        <img
+                                                            src={preview}
+                                                            alt={`New proof ${index + 1}`}
+                                                            className="h-24 w-full rounded-lg border border-gray-100 object-cover"
+                                                        />
+                                                        <button
+                                                            onClick={() => handleRemoveEditNewImage(index)}
+                                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow-sm"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="mt-3">
+                                        <label className="cursor-pointer group inline-flex items-center justify-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 hover:border-secondary-sage hover:bg-gray-50 transition-all">
+                                            <ImageIcon className="w-4 h-4 text-primary/60 group-hover:text-primary" />
+                                            <span className="text-[11px] font-bold text-primary/60 group-hover:text-primary">
+                                                Upload Images
+                                            </span>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                className="hidden"
+                                                onChange={handleEditImageChange}
+                                            />
+                                        </label>
+                                    </div>
                                     <div className="flex gap-2 mt-3">
                                         <button
                                             onClick={() => handleUpdateNote(note.id)}
-                                            className="flex items-center gap-2 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-secondary-sage hover:text-primary transition-all shadow-sm active:scale-95"
+                                            disabled={uploading}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-secondary-sage hover:text-primary transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            <Save className="w-3 h-3" />
-                                            Save
+                                            {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                            {uploading ? 'Saving...' : 'Save'}
                                         </button>
                                         <button
                                             onClick={cancelEditing}
