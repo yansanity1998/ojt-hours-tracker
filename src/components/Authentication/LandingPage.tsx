@@ -23,7 +23,7 @@ const LandingPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center p-8 pb-12 font-sans text-white relative overflow-hidden">
+        <div className="min-h-screen flex flex-col items-center px-4 sm:px-8 pb-12 pt-8 font-sans text-white relative overflow-hidden">
             {/* Background Image Layer */}
             <div
                 className="absolute inset-0 z-0 bg-cover bg-center"
@@ -37,7 +37,7 @@ const LandingPage = () => {
             <div className="absolute inset-0 z-0 bg-[#4b5d2a]/90" />
 
             {/* Center Content */}
-            <div className="flex-1 flex flex-col items-center justify-center w-full z-10">
+            <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md sm:max-w-xl md:max-w-2xl mx-auto z-10">
                 {/* Logo with fade-in and scale animation */}
                 <div
                     className={`w-40 h-40 md:w-56 md:h-56 relative rounded-full overflow-hidden transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'
@@ -54,7 +54,7 @@ const LandingPage = () => {
 
                 {/* Title with fade-in and slide-up animation */}
                 <h1
-                    className={`text-4xl font-extrabold text-white tracking-tight mt-6 mb-1 text-center transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                    className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight mt-6 mb-1 text-center transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
                         }`}
                     style={{ transitionDelay: '300ms' }}
                 >
@@ -63,7 +63,7 @@ const LandingPage = () => {
 
                 {/* Subtitle with fade-in and slide-up animation */}
                 <p
-                    className={`text-gray-100 font-medium text-center max-w-[80%] leading-tight transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                    className={`text-sm sm:text-base text-gray-100 font-medium text-center max-w-[80%] leading-tight transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
                         }`}
                     style={{ transitionDelay: '450ms' }}
                 >
@@ -72,10 +72,10 @@ const LandingPage = () => {
             </div>
 
             {/* Buttons Section with fade-in and slide-up animation */}
-            <div className="w-full space-y-4 mt-auto pt-8 z-10">
+            <div className="w-full max-w-md sm:max-w-xl md:max-w-2xl mx-auto space-y-4 mt-auto pt-8 z-10">
                 <button
                     onClick={() => handleNavigation('/register')}
-                    className={`w-full bg-white hover:bg-gray-100 text-[#1a2517] font-bold py-4 rounded-2xl shadow-xl shadow-black/20 hover:shadow-2xl hover:shadow-black/30 active:scale-[0.96] transition-all duration-300 text-lg transform ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                    className={`w-full bg-white hover:bg-gray-100 text-[#1a2517] font-bold py-3.5 sm:py-4 rounded-2xl shadow-xl shadow-black/20 hover:shadow-2xl hover:shadow-black/30 active:scale-[0.96] transition-all duration-300 text-base sm:text-lg transform ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                         }`}
                     style={{ transitionDelay: '600ms' }}
                 >
@@ -84,7 +84,7 @@ const LandingPage = () => {
 
                 <button
                     onClick={() => handleNavigation('/login')}
-                    className={`w-full bg-transparent border-2 border-white text-white font-bold py-4 rounded-2xl hover:bg-white/10 hover:border-white/90 hover:shadow-lg hover:shadow-white/20 active:scale-[0.96] transition-all duration-300 text-lg transform ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                    className={`w-full bg-transparent border-2 border-white text-white font-bold py-3.5 sm:py-4 rounded-2xl hover:bg-white/10 hover:border-white/90 hover:shadow-lg hover:shadow-white/20 active:scale-[0.96] transition-all duration-300 text-base sm:text-lg transform ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                         }`}
                     style={{ transitionDelay: '750ms' }}
                 >

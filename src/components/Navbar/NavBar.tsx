@@ -56,7 +56,7 @@ const NavBar: React.FC<NavBarProps> = ({
 
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-50">
-            <div className="max-w-md mx-auto relative">
+            <div className="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto relative">
                 {/* FAB Button - centered above navbar */}
                 <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-10">
                     <button
@@ -93,7 +93,7 @@ const NavBar: React.FC<NavBarProps> = ({
                 {/* Navbar */}
                 <div className="bg-white border-t border-gray-200/80 backdrop-blur-lg shadow-2xl rounded-t-2xl">
                     <div className="px-4 py-2">
-                        <div className="flex items-center justify-around max-w-sm mx-auto">
+                        <div className="flex items-center justify-around max-w-sm sm:max-w-md md:max-w-lg mx-auto">
                             {/* All nav items with even spacing, spacer in middle for FAB */}
                             {navItems.map((item, index) => (
                                 <React.Fragment key={item.href}>

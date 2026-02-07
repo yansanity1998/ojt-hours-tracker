@@ -78,7 +78,7 @@ const Register: React.FC<RegisterProps> = ({ session }) => {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-0 sm:p-6 font-sans text-white relative overflow-hidden">
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 py-8 font-sans text-white relative overflow-hidden">
             {/* Background Image Layer */}
             <div
                 className="absolute inset-0 z-0 bg-cover bg-center"
@@ -98,13 +98,13 @@ const Register: React.FC<RegisterProps> = ({ session }) => {
                 onClose={() => setShowToast(false)}
             />
 
-            <div className="w-full max-w-md rounded-none sm:rounded-3xl overflow-hidden flex flex-col justify-center py-8 sm:py-10 z-10">
+            <div className="w-full max-w-md md:max-w-lg rounded-none sm:rounded-3xl overflow-hidden flex flex-col justify-center py-8 sm:py-10 z-10">
 
                 {/* Header Section with Image - slightly smaller on register to fit fields */}
-                <div className="flex flex-col items-center pt-8 pb-4 px-8">
+                <div className="flex flex-col items-center pt-8 pb-4 px-4 sm:px-8">
                     {/* Logo with fade-in and scale animation */}
                     <div
-                        className={`w-40 h-40 md:w-56 md:h-56 mb-2 relative rounded-full overflow-hidden ${isLoaded ? 'animate-roll-in' : 'opacity-0'
+                        className={`w-28 h-28 xs:w-32 xs:h-32 sm:w-40 sm:h-40 md:w-56 md:h-56 mb-2 relative rounded-full overflow-hidden ${isLoaded ? 'animate-roll-in' : 'opacity-0'
                             }`}
                         style={{ transitionDelay: '100ms' }}
                     >
@@ -117,7 +117,7 @@ const Register: React.FC<RegisterProps> = ({ session }) => {
 
                     {/* Title with fade-in and slide-up animation */}
                     <h1
-                        className={`text-3xl font-extrabold text-white tracking-tight mb-1 transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                        className={`text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-1 transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
                             }`}
                         style={{ transitionDelay: '250ms' }}
                     >
@@ -126,7 +126,7 @@ const Register: React.FC<RegisterProps> = ({ session }) => {
 
                     {/* Subtitle with fade-in and slide-up animation */}
                     <p
-                        className={`text-gray-100 text-sm font-medium text-center transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                        className={`text-gray-100 text-xs sm:text-sm font-medium text-center transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
                             }`}
                         style={{ transitionDelay: '400ms' }}
                     >
@@ -136,7 +136,7 @@ const Register: React.FC<RegisterProps> = ({ session }) => {
 
                 {/* Register Form */}
                 <div
-                    className={`px-8 pb-6 transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                    className={`px-4 sm:px-8 pb-6 transform transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
                         }`}
                     style={{ transitionDelay: '550ms' }}
                 >

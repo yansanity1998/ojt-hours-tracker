@@ -649,7 +649,7 @@ const Dashboard: React.FC = () => {
                         <div className="absolute inset-0 bg-gradient-to-br from-[#1a2517]/70 to-[#4A5D44]/70" />
                     </div>
 
-                    <div className="max-w-md mx-auto relative z-30">
+                    <div className="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto relative z-30">
                         <div className="flex items-center justify-between mb-6 animate-pulse">
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/40" />
@@ -686,7 +686,7 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="max-w-md mx-auto px-4 -mt-4 pb-12 overflow-hidden relative z-20">
+                <div className="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto px-4 -mt-4 pb-12 overflow-hidden relative z-20">
                     <div className="space-y-4">
                         <div className="h-32 sm:h-36 rounded-2xl bg-white shadow-sm border border-gray-100 animate-pulse" />
                         <div className="h-32 sm:h-36 rounded-2xl bg-white shadow-sm border border-gray-100 animate-pulse" />
@@ -794,7 +794,7 @@ const Dashboard: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-[#1a2517]/70 to-[#4A5D44]/70" />
                 </div>
 
-                <div className="max-w-md mx-auto relative z-30">
+                <div className="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto relative z-30">
                     {/* Top bar */}
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
@@ -906,7 +906,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Main Content */}
-            <div className="max-w-md mx-auto px-4 -mt-4 pb-12 overflow-hidden relative z-20">
+            <div className="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto px-4 -mt-4 pb-12 overflow-hidden relative z-20">
                 <div
                     key={activeTab}
                     className={animationClass}

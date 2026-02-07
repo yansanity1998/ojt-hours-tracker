@@ -735,7 +735,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                             <p className="text-[10px] font-bold text-[#1a2517]/40 uppercase tracking-widest mb-1.5">
                                                 Proof of Work
                                             </p>
-                                            <div className="grid grid-cols-3 gap-2">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                                 {editExistingImageUrls.map((url, index) => (
                                                     <div key={`existing-${index}`} className="relative">
                                                         <img
@@ -835,7 +835,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                             <p className="text-[10px] font-bold text-[#1a2517]/40 uppercase tracking-widest mb-1.5">
                                                 Proof of Work
                                             </p>
-                                            <div className="grid grid-cols-3 gap-2">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                                 {note.imageUrls.slice(0, 3).map((url, index) => (
                                                     <img
                                                         key={index}

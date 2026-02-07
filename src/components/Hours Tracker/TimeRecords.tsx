@@ -154,7 +154,7 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                 </div>
             </div>
 
-            <div className="space-y-4 max-h-[600px] overflow-y-auto no-scrollbar pr-1">
+            <div className="space-y-4 max-h-[60vh] md:max-h-[70vh] overflow-y-auto no-scrollbar pr-1">
                 {entries.length === 0 ? (
                     <div className="text-center py-16 px-4 bg-[#F8F9FA] rounded-2xl border-2 border-dashed border-[#E9ECEF]">
                         <div className="mb-4 opacity-20 text-[#1a2517] flex justify-center">
