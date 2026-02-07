@@ -59,6 +59,7 @@ const Dashboard: React.FC = () => {
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [userAvatar, setUserAvatar] = useState<string | null>(null);
+    const [userFullName, setUserFullName] = useState<string>('');
     const [activationEffect, setActivationEffect] = useState<'in' | 'out' | null>(null);
 
     // Drag and drop sensors
@@ -172,6 +173,9 @@ const Dashboard: React.FC = () => {
             const metaAvatar = (user.user_metadata as { avatar_url?: string } | null)?.avatar_url;
             if (metaAvatar) setUserAvatar(metaAvatar);
 
+            const metaName = (user.user_metadata as { full_name?: string } | null)?.full_name;
+            if (metaName) setUserFullName(metaName);
+
             // Fetch profile for avatar and full name
             const { data: profile } = await supabase
                 .from('profiles')
@@ -184,6 +188,10 @@ const Dashboard: React.FC = () => {
             } else {
                 const metaAvatar = (user.user_metadata as { avatar_url?: string } | null)?.avatar_url;
                 if (metaAvatar) setUserAvatar(metaAvatar);
+            }
+
+            if (profile?.full_name) {
+                setUserFullName(profile.full_name);
             }
 
             // Fetch OJT Settings
@@ -256,6 +264,22 @@ const Dashboard: React.FC = () => {
 
         fetchData();
     }, [navigate]);
+
+    const getGreeting = (date: Date) => {
+        const hour = date.getHours();
+        if (hour < 12) return 'Good morning';
+        if (hour < 18) return 'Good afternoon';
+        return 'Good evening';
+    };
+
+    const getFirstName = (name: string) => {
+        const trimmed = name.trim();
+        if (!trimmed) return '';
+        const first = trimmed.split(/\s+/)[0] ?? '';
+        return first;
+    };
+
+    const userFirstName = getFirstName(userFullName);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -780,8 +804,11 @@ const Dashboard: React.FC = () => {
                                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shadow-md bg-white/90"
                             />
                             <div>
-                                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                                    OJT Hours
+                                <h1
+                                    className="text-base xs:text-lg sm:text-2xl font-black text-white tracking-tight leading-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-[220px] xs:max-w-[260px] sm:max-w-none"
+                                    title={`${getGreeting(currentTime)}${userFirstName ? `, ${userFirstName}` : ''}`}
+                                >
+                                    {getGreeting(currentTime)}{userFirstName ? `, ${userFirstName}` : ''}
                                 </h1>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                     {companyLocation ? (
@@ -804,10 +831,10 @@ const Dashboard: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="text-right flex flex-col items-end">
-                                <p className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none">
+                                <p className="text-[8px] sm:text-[10px] font-black text-white/90 uppercase tracking-wider leading-none">
                                     {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                 </p>
-                                <p className="text-[8px] font-bold text-white/60 uppercase tracking-wider mt-1 leading-none">
+                                <p className="text-[7px] sm:text-[8px] font-bold text-white/60 uppercase tracking-wide mt-1 leading-none">
                                     {currentTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </p>
                             </div>

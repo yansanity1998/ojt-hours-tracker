@@ -253,9 +253,11 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-[#1a2517]/60 uppercase tracking-widest mb-1">Account</p>
-                                <p className="text-base font-bold text-[#1a2517] flex items-center gap-2">
-                                    {email}
-                                    <Mail className="w-4 h-4 text-[#1a2517]/30" />
+                                <p className="text-base font-bold text-[#1a2517] flex flex-wrap items-center gap-2 min-w-0">
+                                    <span className="min-w-0 break-all">
+                                        {email}
+                                    </span>
+                                    <Mail className="w-4 h-4 text-[#1a2517]/30 shrink-0" />
                                 </p>
                                 <p className="text-[10px] text-[#1a2517]/50 font-medium">Click the camera to update photo</p>
                             </div>
