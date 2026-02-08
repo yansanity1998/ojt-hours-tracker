@@ -223,8 +223,8 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
                 <div className="space-y-4">
                     <div className="p-4 bg-white/40 backdrop-blur-sm border border-white/20 rounded-xl">
                         <div className="flex items-center gap-4 mb-6">
-                            <div className="relative group">
-                                <div className="w-20 h-20 rounded-2xl bg-[#1a2517]/10 flex items-center justify-center text-[#1a2517] overflow-hidden border-2 border-[#1a2517]/5 group-hover:border-[#ACC8A2] transition-all duration-300 shadow-inner">
+                            <div className="relative group w-fit shrink-0">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#1a2517]/10 flex items-center justify-center text-[#1a2517] overflow-hidden border-2 border-[#1a2517]/5 group-hover:border-[#ACC8A2] transition-all duration-300 shadow-inner">
                                     {avatarUrl ? (
                                         <img
                                             src={avatarUrl}
@@ -251,13 +251,13 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
                                     />
                                 </label>
                             </div>
-                            <div>
+                            <div className="min-w-0 flex-1 flex flex-col items-start ml-1 sm:ml-2">
                                 <p className="text-xs font-semibold text-[#1a2517]/60 uppercase tracking-widest mb-1">Account</p>
-                                <p className="text-base font-bold text-[#1a2517] flex flex-wrap items-center gap-2 min-w-0">
+                                <p className="w-full text-xs sm:text-base font-bold text-[#1a2517] flex items-center gap-2 min-w-0 justify-start">
+                                    <Mail className="w-4 h-4 text-[#1a2517]/30 shrink-0" />
                                     <span className="min-w-0 break-all">
                                         {email}
                                     </span>
-                                    <Mail className="w-4 h-4 text-[#1a2517]/30 shrink-0" />
                                 </p>
                                 <p className="text-[10px] text-[#1a2517]/50 font-medium">Click the camera to update photo</p>
                             </div>
@@ -270,7 +270,7 @@ const Profile: React.FC<ProfileProps> = ({ companyName, companyLocation, totalRe
                             <input
                                 type="text"
                                 value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFullName(e.target.value)}
                                 className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-[#1a2517] focus:outline-none focus:ring-2 focus:ring-[#ACC8A2] bg-white"
                                 placeholder="Enter your name"
                             />
