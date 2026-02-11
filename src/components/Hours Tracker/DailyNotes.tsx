@@ -36,6 +36,9 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
     const [editImages, setEditImages] = useState<File[]>([]);
     const [editImagePreviews, setEditImagePreviews] = useState<string[]>([]);
 
+    // Zoom modal state
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+
     // Camera states
     const [showCamera, setShowCamera] = useState(false);
     const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
@@ -841,7 +844,9 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                                         key={index}
                                                         src={url}
                                                         alt={`Proof of work ${index + 1}`}
-                                                        className="h-24 w-full rounded-lg border border-gray-100 object-cover cursor-zoom-in"
+                                                        className="h-24 w-full rounded-lg border border-gray-100 object-cover cursor-zoom-in transition-transform hover:scale-105"
+                                                        onClick={() => setZoomedImage(url)}
+                                                        style={{ cursor: 'zoom-in' }}
                                                     />
                                                 ))}
                                             </div>
@@ -912,7 +917,9 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                                             key={index}
                                                             src={url}
                                                             alt={`Proof ${index + 1}`}
-                                                            className="h-28 w-28 rounded-lg border border-gray-200 object-cover"
+                                                            className="h-28 w-28 rounded-lg border border-gray-200 object-cover cursor-zoom-in transition-transform hover:scale-105"
+                                                            onClick={() => setZoomedImage(url)}
+                                                            style={{ cursor: 'zoom-in' }}
                                                         />
                                                     ))}
                                                 </div>
@@ -926,6 +933,39 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                     document.body
                 )
                 : null}
+
+            {/* Zoomed Image Modal */}
+            {zoomedImage && typeof document !== 'undefined' && createPortal(
+                <div
+                    className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm px-2 sm:px-0"
+                    onClick={() => setZoomedImage(null)}
+                    style={{ cursor: 'zoom-out', touchAction: 'manipulation' }}
+                >
+                    <div
+                        className="relative flex items-center justify-center w-full h-full"
+                        style={{ maxWidth: '100vw', maxHeight: '100vh' }}
+                    >
+                        <img
+                            src={zoomedImage}
+                            alt="Zoomed Proof"
+                            className="w-auto h-auto max-w-[98vw] max-h-[80vh] sm:max-w-[90vw] sm:max-h-[90vh] rounded-xl shadow-2xl border-4 border-white bg-white"
+                            style={{ objectFit: 'contain', display: 'block', margin: '0 auto', background: '#fff', maxWidth: '98vw', maxHeight: '80vh' }}
+                            onClick={e => e.stopPropagation()}
+                        />
+                        <button
+                            onClick={() => setZoomedImage(null)}
+                            className="absolute top-2 right-2 sm:top-6 sm:right-6 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 z-10 focus:outline-none focus:ring-2 focus:ring-white"
+                            style={{ fontSize: '1.5rem', lineHeight: 1, touchAction: 'manipulation' }}
+                            aria-label="Close zoomed image"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>,
+                document.body
+            )}
 
             {/* Hidden Export Layout (Positioned off-screen so html2canvas can see it) */}
             <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
