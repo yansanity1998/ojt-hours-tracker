@@ -6,7 +6,6 @@ import type { NotificationType } from './Notification';
 import Webcam from 'react-webcam';
 import { supabase } from '../../supabase/supabase';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 interface Note {
     id: string;
@@ -49,28 +48,278 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
     const printRef = useRef<HTMLDivElement>(null);
 
     const handleDownloadPDF = async () => {
-        if (!printRef.current) return;
-
         setIsExporting(true);
         try {
-            // Wait a bit for any images to be fully rendered
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            const element = printRef.current;
-            const canvas = await html2canvas(element, {
-                scale: 2, // Higher quality
-                useCORS: true, // Allow cross-origin images (Supabase)
-                logging: false,
-                backgroundColor: '#ffffff'
-            });
-
-            const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgProps = pdf.getImageProperties(imgData);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
 
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            const marginX = 12;
+            const marginTop = 14;
+            const marginBottom = 14;
+            const contentWidth = pageWidth - marginX * 2;
+
+            const headerTitleSize = 16;
+            const normalFontSize = 10;
+
+            const tableHeaderBg: [number, number, number] = [243, 244, 246];
+            const borderColor: [number, number, number] = [17, 17, 17];
+
+            const colDateW = Math.round(contentWidth * 0.14 * 10) / 10;
+            const colProofW = Math.round(contentWidth * 0.34 * 10) / 10;
+            const colTextW = contentWidth - colDateW - colProofW;
+
+            const cellPad = 2.5;
+            const lineHeightFactor = 1.25;
+
+            const fetchAsDataUrl = async (url: string): Promise<string | null> => {
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) return null;
+                    const blob = await res.blob();
+                    return await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+                        reader.readAsDataURL(blob);
+                    });
+                } catch {
+                    return null;
+                }
+            };
+
+            const drawHeader = () => {
+                let y = marginTop;
+
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFont('times', 'bold');
+                pdf.setFontSize(headerTitleSize);
+                pdf.text('OJT DAILY ACTIVITY LOG', pageWidth / 2, y, { align: 'center' });
+                y += 6;
+
+                pdf.setFont('times', 'normal');
+                pdf.setFontSize(9);
+                pdf.setTextColor(68, 68, 68);
+                pdf.text(
+                    `Generated ${new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}`,
+                    pageWidth / 2,
+                    y,
+                    { align: 'center' }
+                );
+                y += 4;
+
+                pdf.setDrawColor(...borderColor);
+                pdf.setLineWidth(0.6);
+                pdf.line(marginX, y, pageWidth - marginX, y);
+                y += 7;
+
+                // simple info lines
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFontSize(normalFontSize);
+                pdf.setFont('times', 'bold');
+                pdf.text('Student Name:', marginX, y);
+                pdf.setFont('times', 'normal');
+                pdf.text('_________________________', marginX + 28, y);
+                pdf.setFont('times', 'bold');
+                pdf.text('Company/HTE:', marginX + contentWidth / 2, y);
+                pdf.setFont('times', 'normal');
+                pdf.text('_________________________', marginX + contentWidth / 2 + 26, y);
+                y += 6;
+
+                pdf.setFont('times', 'bold');
+                pdf.text('Degree/Program:', marginX, y);
+                pdf.setFont('times', 'normal');
+                pdf.text('_________________________', marginX + 32, y);
+                pdf.setFont('times', 'bold');
+                pdf.text('Total Target Hours:', marginX + contentWidth / 2, y);
+                pdf.setFont('times', 'normal');
+                pdf.text('_________________________', marginX + contentWidth / 2 + 35, y);
+                y += 10;
+
+                return y;
+            };
+
+            const drawTableHeader = (y: number) => {
+                const h = 10;
+                pdf.setDrawColor(...borderColor);
+                pdf.setLineWidth(0.4);
+                pdf.setFillColor(...tableHeaderBg);
+                pdf.rect(marginX, y, contentWidth, h, 'F');
+                pdf.rect(marginX, y, contentWidth, h);
+                pdf.line(marginX + colDateW, y, marginX + colDateW, y + h);
+                pdf.line(marginX + colDateW + colTextW, y, marginX + colDateW + colTextW, y + h);
+
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFont('times', 'bold');
+                pdf.setFontSize(10);
+                pdf.text('Date', marginX + colDateW / 2, y + 6.5, { align: 'center' });
+                pdf.text('Detailed Accomplishments & Activities', marginX + colDateW + cellPad, y + 6.5);
+                pdf.text('Proof / Photo Evidence', marginX + colDateW + colTextW + colProofW / 2, y + 6.5, { align: 'center' });
+                return y + h;
+            };
+
+            const footerHeight = 42;
+            const drawFooterLastPage = () => {
+                const yBase = pageHeight - marginBottom;
+
+                pdf.setDrawColor(...borderColor);
+                pdf.setLineWidth(0.4);
+                pdf.line(marginX, yBase - footerHeight + 8, pageWidth - marginX, yBase - footerHeight + 8);
+
+                const sigBlockW = 70;
+                const sigLineY = yBase - 20;
+
+                // Left signature
+                pdf.setDrawColor(...borderColor);
+                pdf.setLineWidth(0.35);
+                pdf.line(marginX + 5, sigLineY, marginX + 5 + sigBlockW, sigLineY);
+                pdf.setFont('times', 'bold');
+                pdf.setFontSize(10);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text('Student Signature', marginX + 5 + sigBlockW / 2, sigLineY + 6, { align: 'center' });
+                pdf.setFont('times', 'normal');
+                pdf.setFontSize(8);
+                pdf.setTextColor(102, 102, 102);
+                pdf.text('Date Signed', marginX + 5 + sigBlockW / 2, sigLineY + 10, { align: 'center' });
+
+                // Right signature
+                const rightX = pageWidth - marginX - 5 - sigBlockW;
+                pdf.setDrawColor(...borderColor);
+                pdf.setLineWidth(0.35);
+                pdf.line(rightX, sigLineY, rightX + sigBlockW, sigLineY);
+                pdf.setFont('times', 'bold');
+                pdf.setFontSize(10);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text('Company Supervisor', rightX + sigBlockW / 2, sigLineY + 6, { align: 'center' });
+                pdf.setFont('times', 'normal');
+                pdf.setFontSize(8);
+                pdf.setTextColor(102, 102, 102);
+                pdf.text('Signature Over Printed Name', rightX + sigBlockW / 2, sigLineY + 10, { align: 'center' });
+
+                // Footer note
+                pdf.setFont('times', 'italic');
+                pdf.setFontSize(8);
+                pdf.setTextColor(153, 153, 153);
+                pdf.text('This is an official OJT daily log report generated via OJT Work Tracker.', pageWidth / 2, yBase - 6, { align: 'center' });
+                pdf.setFont('times', 'normal');
+                pdf.setFontSize(normalFontSize);
+                pdf.setTextColor(0, 0, 0);
+            };
+
+            let cursorY = drawHeader();
+            cursorY = drawTableHeader(cursorY);
+
+            pdf.setFont('times', 'normal');
+            pdf.setFontSize(normalFontSize);
+
+            for (const note of notes) {
+                const date = new Date(note.date);
+                const dateMain = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const dateSub = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+                const dateYear = String(date.getFullYear());
+
+                const textLines = pdf.splitTextToSize(note.content || '', colTextW - cellPad * 2);
+                const textHeight = Math.max(8, textLines.length * (normalFontSize * 0.3528) * lineHeightFactor);
+
+                const hasImages = !!(note.imageUrls && note.imageUrls.length > 0);
+                const imgBlockHeight = hasImages ? 55 : 10;
+
+                const rowHeight = Math.max(24, textHeight + cellPad * 2, imgBlockHeight + cellPad * 2);
+
+                // Page break BEFORE the row if it doesn't fit
+                if (cursorY + rowHeight > pageHeight - marginBottom) {
+                    pdf.addPage();
+                    cursorY = marginTop;
+                    cursorY = drawTableHeader(cursorY);
+                    pdf.setFont('times', 'normal');
+                    pdf.setFontSize(normalFontSize);
+                }
+
+                // Row borders
+                pdf.setDrawColor(...borderColor);
+                pdf.setLineWidth(0.35);
+                pdf.rect(marginX, cursorY, contentWidth, rowHeight);
+                pdf.line(marginX + colDateW, cursorY, marginX + colDateW, cursorY + rowHeight);
+                pdf.line(marginX + colDateW + colTextW, cursorY, marginX + colDateW + colTextW, cursorY + rowHeight);
+
+                // Date cell
+                const dateCenterX = marginX + colDateW / 2;
+                pdf.setFont('times', 'bold');
+                pdf.text(dateMain, dateCenterX, cursorY + 8, { align: 'center' });
+                pdf.setFontSize(8);
+                pdf.setFont('times', 'normal');
+                pdf.setTextColor(102, 102, 102);
+                pdf.text(dateSub, dateCenterX, cursorY + 13, { align: 'center' });
+                pdf.setFontSize(7);
+                pdf.setTextColor(153, 153, 153);
+                pdf.text(dateYear, dateCenterX, cursorY + 17, { align: 'center' });
+
+                // Text cell
+                pdf.setFontSize(normalFontSize);
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFont('times', 'normal');
+                const textX = marginX + colDateW + cellPad;
+                const textY = cursorY + 6;
+                pdf.text(textLines, textX, textY, { maxWidth: colTextW - cellPad * 2 });
+
+                // Proof cell
+                const proofX = marginX + colDateW + colTextW + cellPad;
+                const proofW = colProofW - cellPad * 2;
+
+                if (hasImages) {
+                    const urls = note.imageUrls!.slice(0, 3);
+                    const dataUrls = await Promise.all(urls.map(fetchAsDataUrl));
+
+                    // Main image
+                    const main = dataUrls[0];
+                    if (main) {
+                        const mainH = 36;
+                        (pdf as any).addImage(main, 'JPEG', proofX, cursorY + 4, proofW, mainH);
+                    }
+
+                    // Thumbs
+                    const thumbY = cursorY + 42;
+                    const thumbH = 12;
+                    const gap = 2;
+                    const thumbW = (proofW - gap) / 2;
+                    if (dataUrls[1]) (pdf as any).addImage(dataUrls[1], 'JPEG', proofX, thumbY, thumbW, thumbH);
+                    if (dataUrls[2]) (pdf as any).addImage(dataUrls[2], 'JPEG', proofX + thumbW + gap, thumbY, thumbW, thumbH);
+
+                    // Badge
+                    const badgeY = cursorY + rowHeight - 5;
+                    pdf.setFontSize(7);
+                    pdf.setTextColor(17, 17, 17);
+                    pdf.setFillColor(238, 242, 255);
+                    pdf.setDrawColor(199, 210, 254);
+                    const badgeText = 'PROOF ATTACHED';
+                    const countText = `${Math.min(3, urls.length)} IMAGE${Math.min(3, urls.length) > 1 ? 'S' : ''}`;
+                    const badgeW = 28;
+                    const badgeH = 4.5;
+                    const badgeX = proofX + (proofW - badgeW) / 2;
+                    pdf.roundedRect(badgeX, badgeY - badgeH, badgeW, badgeH, 2, 2, 'FD');
+                    pdf.text(badgeText, badgeX + badgeW / 2, badgeY - 1.3, { align: 'center' });
+                    pdf.setTextColor(107, 114, 128);
+                    pdf.text(countText, proofX + proofW - 0.5, badgeY - 1.3, { align: 'right' });
+                } else {
+                    pdf.setFontSize(8);
+                    pdf.setTextColor(160, 160, 160);
+                    pdf.setFont('times', 'italic');
+                    pdf.text('No image attached', marginX + colDateW + colTextW + colProofW / 2, cursorY + 12, { align: 'center' });
+                    pdf.setFont('times', 'normal');
+                    pdf.setFontSize(normalFontSize);
+                    pdf.setTextColor(0, 0, 0);
+                }
+
+                cursorY += rowHeight;
+            }
+
+            // Ensure footer doesn't overlap the last rows.
+            if (cursorY + footerHeight > pageHeight - marginBottom) {
+                pdf.addPage();
+            }
+
+            pdf.setPage(pdf.getNumberOfPages());
+            drawFooterLastPage();
+
             pdf.save(`OJT_Daily_Report_${new Date().toLocaleDateString('en-CA')}.pdf`);
 
             onNotify?.('note-updated', 'PDF downloaded successfully.');
@@ -981,13 +1230,17 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                     }}
                 >
                     {/* Professional Header */}
-                    <div style={{ textAlign: 'center', marginBottom: '30px', borderBottom: '2px solid #000000', paddingBottom: '15px' }}>
-                        <h1 style={{ fontSize: '20pt', fontWeight: 'bold', margin: '0 0 5px 0', textTransform: 'uppercase' }}>OJT Daily Activity Log</h1>
-                        <p style={{ fontSize: '10pt', fontStyle: 'italic', color: '#666666', margin: 0 }}>Generated on {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}</p>
+                    <div style={{ marginBottom: '18px', paddingBottom: '12px', borderBottom: '2px solid #111111' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px' }}>
+                            <h1 style={{ fontSize: '18pt', fontWeight: 'bold', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>OJT Daily Activity Log</h1>
+                            <div style={{ fontSize: '9pt', color: '#444444', textAlign: 'right' }}>
+                                <div style={{ fontStyle: 'italic' }}>Generated {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}</div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Intern Details Section */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '30px', fontSize: '10pt' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '18px', fontSize: '10pt' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #cccccc', paddingBottom: '4px' }}>
                                 <span style={{ fontWeight: 'bold' }}>Student Name:</span>
@@ -1011,42 +1264,57 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                     </div>
 
                     {/* Activity Table */}
-                    <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', fontSize: '9.5pt' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #111111', fontSize: '9.5pt' }}>
                         <thead>
-                            <tr style={{ backgroundColor: '#f9f9f9' }}>
-                                <th style={{ border: '1px solid #000000', padding: '10px', width: '15%', textAlign: 'center' }}>Date</th>
-                                <th style={{ border: '1px solid #000000', padding: '10px', textAlign: 'left' }}>Detailed Accomplishments & Activities</th>
-                                <th style={{ border: '1px solid #000000', padding: '10px', width: '30%', textAlign: 'center' }}>Photo Evidence</th>
+                            <tr style={{ backgroundColor: '#f3f4f6' }}>
+                                <th style={{ border: '1px solid #111111', padding: '10px', width: '14%', textAlign: 'center' }}>Date</th>
+                                <th style={{ border: '1px solid #111111', padding: '10px', textAlign: 'left' }}>Detailed Accomplishments & Activities</th>
+                                <th style={{ border: '1px solid #111111', padding: '10px', width: '34%', textAlign: 'center' }}>Proof / Photo Evidence</th>
                             </tr>
                         </thead>
                         <tbody>
                             {notes.map((note) => (
                                 <tr key={note.id}>
-                                    <td style={{ border: '1px solid #000000', padding: '10px', verticalAlign: 'top', textAlign: 'center' }}>
+                                    <td style={{ border: '1px solid #111111', padding: '10px', verticalAlign: 'top', textAlign: 'center' }}>
                                         <div style={{ fontWeight: 'bold' }}>{new Date(note.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                                         <div style={{ fontSize: '8pt', color: '#666666', textTransform: 'uppercase' }}>{new Date(note.date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
                                         <div style={{ fontSize: '7pt', color: '#999999', marginTop: '2px' }}>{new Date(note.date).getFullYear()}</div>
                                     </td>
-                                    <td style={{ border: '1px solid #000000', padding: '12px', verticalAlign: 'top', lineHeight: '1.5', textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
+                                    <td style={{ border: '1px solid #111111', padding: '12px', verticalAlign: 'top', lineHeight: '1.55', textAlign: 'left', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                                         {note.content}
                                     </td>
-                                    <td style={{ border: '1px solid #000000', padding: '10px', verticalAlign: 'top', textAlign: 'center' }}>
+                                    <td style={{ border: '1px solid #111111', padding: '10px', verticalAlign: 'top', textAlign: 'center' }}>
                                         {note.imageUrls && note.imageUrls.length > 0 ? (
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '4px' }}>
-                                                    {note.imageUrls.slice(0, 3).map((url, index) => (
-                                                        <img
-                                                            key={index}
-                                                            src={url}
-                                                            alt={`Proof ${index + 1}`}
-                                                            style={{ width: '48%', height: 'auto', maxHeight: '80px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #eeeeee' }}
-                                                            crossOrigin="anonymous"
-                                                        />
-                                                    ))}
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                                                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                    <img
+                                                        src={note.imageUrls[0]}
+                                                        alt="Proof 1"
+                                                        style={{ width: '100%', height: 'auto', maxHeight: '130px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb' }}
+                                                        crossOrigin="anonymous"
+                                                    />
+                                                    {note.imageUrls.length > 1 && (
+                                                        <div style={{ display: 'flex', gap: '6px', width: '100%' }}>
+                                                            {note.imageUrls.slice(1, 3).map((url, index) => (
+                                                                <img
+                                                                    key={index}
+                                                                    src={url}
+                                                                    alt={`Proof ${index + 2}`}
+                                                                    style={{ width: '50%', height: 'auto', maxHeight: '75px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb' }}
+                                                                    crossOrigin="anonymous"
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <span style={{ fontSize: '7pt', color: '#999999', marginTop: '2px', textTransform: 'uppercase' }}>
-                                                    Verified Proof{note.imageUrls.length > 1 ? 's' : ''}
-                                                </span>
+                                                <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                                    <span style={{ fontSize: '7pt', color: '#111111', background: '#eef2ff', border: '1px solid #c7d2fe', padding: '2px 6px', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 'bold' }}>
+                                                        Proof Attached
+                                                    </span>
+                                                    <span style={{ fontSize: '7pt', color: '#6b7280', textTransform: 'uppercase' }}>
+                                                        {Math.min(3, note.imageUrls.length)} image{Math.min(3, note.imageUrls.length) > 1 ? 's' : ''}
+                                                    </span>
+                                                </div>
                                             </div>
                                         ) : (
                                             <span style={{ color: '#cccccc', fontStyle: 'italic', fontSize: '8pt' }}>No image attached</span>
