@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { History, Plus, Trash2, FolderOpen, Sun, Sunset, CalendarDays, FileDown, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import Swal from 'sweetalert2';
 
 interface TimeEntry {
@@ -71,28 +70,328 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
     };
 
     const handleDownloadPDF = async () => {
-        if (!printRef.current) return;
-
         setIsExporting(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            const element = printRef.current;
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff'
-            });
-
-            const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgProps = pdf.getImageProperties(imgData);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
 
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`OJT_DTR_${new Date().toLocaleDateString('en-CA')}.pdf`);
+            const marginX = 12;
+            const marginTop = 14;
+            const marginBottom = 14;
+            const contentWidth = pageWidth - marginX * 2;
+
+            const headerTitleSize = 16;
+            const normalFontSize = 10;
+
+            const parsePhDate = (dateStr: string) => new Date(`${dateStr}T00:00:00+08:00`);
+            const formatPh = (d: Date, options: Intl.DateTimeFormatOptions) =>
+                new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'Asia/Manila' }).format(d);
+
+            const formatTime12h = (t: string | null) => {
+                if (!t) return '-- : --';
+                const m = /^\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*$/.exec(t);
+                if (!m) return t;
+                const hh = Number(m[1]);
+                const mm = m[2];
+                if (Number.isNaN(hh)) return t;
+                const period = hh >= 12 ? 'PM' : 'AM';
+                const h12 = ((hh + 11) % 12) + 1;
+                if (mm === '00') return `${h12} ${period}`;
+                return `${h12}:${mm} ${period}`;
+            };
+
+            const tableHeaderBg: [number, number, number] = [243, 244, 246];
+            const borderColor: [number, number, number] = [17, 17, 17];
+
+            const cellPad = 2.5;
+
+            const cols = {
+                date: 16,
+                amIn: 15.5,
+                amOut: 15.5,
+                pmIn: 15.5,
+                pmOut: 15.5,
+                total: 22
+            };
+            const fixedWidth = cols.date + cols.amIn + cols.amOut + cols.pmIn + cols.pmOut + cols.total;
+            const scale = contentWidth / fixedWidth;
+            const colDateW = cols.date * scale;
+            const colAmInW = cols.amIn * scale;
+            const colAmOutW = cols.amOut * scale;
+            const colPmInW = cols.pmIn * scale;
+            const colPmOutW = cols.pmOut * scale;
+            const colTotalW = cols.total * scale;
+
+            const x0 = marginX;
+            const x1 = x0 + colDateW;
+            const x2 = x1 + colAmInW;
+            const x3 = x2 + colAmOutW;
+            const x4 = x3 + colPmInW;
+            const x5 = x4 + colPmOutW;
+
+            const drawHeader = () => {
+                let y = marginTop;
+
+                const monthLabel = (() => {
+                    if (entries.length === 0) {
+                        return new Date().toLocaleDateString('en-PH', { month: 'long', year: 'numeric', timeZone: 'Asia/Manila' });
+                    }
+
+                    const sortedDates = [...entries]
+                        .map(e => parsePhDate(e.date))
+                        .filter(d => !Number.isNaN(d.getTime()))
+                        .sort((a, b) => a.getTime() - b.getTime());
+
+                    if (sortedDates.length === 0) {
+                        return new Date().toLocaleDateString('en-PH', { month: 'long', year: 'numeric', timeZone: 'Asia/Manila' });
+                    }
+
+                    const first = sortedDates[0];
+                    const last = sortedDates[sortedDates.length - 1];
+                    const firstLabel = first.toLocaleDateString('en-PH', { month: 'long', year: 'numeric', timeZone: 'Asia/Manila' });
+                    const lastLabel = last.toLocaleDateString('en-PH', { month: 'long', year: 'numeric', timeZone: 'Asia/Manila' });
+                    return firstLabel === lastLabel ? firstLabel : `${firstLabel} - ${lastLabel}`;
+                })();
+
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFont('times', 'bold');
+                pdf.setFontSize(headerTitleSize);
+                pdf.text('DAILY TIME RECORD (DTR)', pageWidth / 2, y, { align: 'center' });
+                y += 6;
+
+                pdf.setFont('times', 'normal');
+                pdf.setFontSize(9);
+                pdf.setTextColor(68, 68, 68);
+                pdf.text(
+                    `Generated ${new Date().toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' })}`,
+                    pageWidth / 2,
+                    y,
+                    { align: 'center' }
+                );
+                y += 4;
+
+                pdf.setDrawColor(...borderColor);
+                pdf.setLineWidth(0.6);
+                pdf.line(marginX, y, pageWidth - marginX, y);
+                y += 7;
+
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFontSize(normalFontSize);
+                pdf.setFont('times', 'bold');
+                pdf.text('Student Name:', marginX, y);
+                pdf.setFont('times', 'normal');
+                pdf.text('_________________________', marginX + 28, y);
+                pdf.setFont('times', 'bold');
+                pdf.text('Company/HTE:', marginX + contentWidth / 2, y);
+                pdf.setFont('times', 'normal');
+                pdf.text('_________________________', marginX + contentWidth / 2 + 26, y);
+                y += 6;
+
+                pdf.setFont('times', 'bold');
+                pdf.text('ID Number:', marginX, y);
+                pdf.setFont('times', 'normal');
+                pdf.text('_________________________', marginX + 20, y);
+                pdf.setFont('times', 'bold');
+                pdf.text('Month/Year:', marginX + contentWidth / 2, y);
+                pdf.setFont('times', 'normal');
+                pdf.text(monthLabel, marginX + contentWidth / 2 + 22, y);
+                y += 10;
+
+                return y;
+            };
+
+            const drawTableHeader = (y: number) => {
+                const h = 10;
+
+                pdf.setDrawColor(...borderColor);
+                pdf.setLineWidth(0.4);
+                pdf.setFillColor(...tableHeaderBg);
+                pdf.rect(marginX, y, contentWidth, h, 'F');
+                pdf.rect(marginX, y, contentWidth, h);
+
+                // vertical lines
+                [x1, x2, x3, x4, x5].forEach((x) => pdf.line(x, y, x, y + h));
+
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFont('times', 'bold');
+                pdf.setFontSize(9.5);
+
+                pdf.text('Date', x0 + colDateW / 2, y + 6.6, { align: 'center' });
+                pdf.text('AM In', x1 + colAmInW / 2, y + 6.6, { align: 'center' });
+                pdf.text('AM Out', x2 + colAmOutW / 2, y + 6.6, { align: 'center' });
+                pdf.text('PM In', x3 + colPmInW / 2, y + 6.6, { align: 'center' });
+                pdf.text('PM Out', x4 + colPmOutW / 2, y + 6.6, { align: 'center' });
+                pdf.text('Daily Total', x5 + colTotalW / 2, y + 6.6, { align: 'center' });
+
+                return y + h;
+            };
+
+            const footerHeight = 42;
+            const drawFooterLastPage = () => {
+                const yBase = pageHeight - marginBottom;
+
+                pdf.setDrawColor(...borderColor);
+                pdf.setLineWidth(0.4);
+                pdf.line(marginX, yBase - footerHeight + 8, pageWidth - marginX, yBase - footerHeight + 8);
+
+                const sigBlockW = 70;
+                const sigLineY = yBase - 20;
+
+                // Left signature
+                pdf.setDrawColor(...borderColor);
+                pdf.setLineWidth(0.35);
+                pdf.line(marginX + 5, sigLineY, marginX + 5 + sigBlockW, sigLineY);
+                pdf.setFont('times', 'bold');
+                pdf.setFontSize(10);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text('Signature of Trainee', marginX + 5 + sigBlockW / 2, sigLineY + 6, { align: 'center' });
+                pdf.setFont('times', 'normal');
+                pdf.setFontSize(8);
+                pdf.setTextColor(102, 102, 102);
+                pdf.text('Date Signed', marginX + 5 + sigBlockW / 2, sigLineY + 10, { align: 'center' });
+
+                // Right signature
+                const rightX = pageWidth - marginX - 5 - sigBlockW;
+                pdf.setDrawColor(...borderColor);
+                pdf.setLineWidth(0.35);
+                pdf.line(rightX, sigLineY, rightX + sigBlockW, sigLineY);
+                pdf.setFont('times', 'bold');
+                pdf.setFontSize(10);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text('Company Supervisor', rightX + sigBlockW / 2, sigLineY + 6, { align: 'center' });
+                pdf.setFont('times', 'normal');
+                pdf.setFontSize(8);
+                pdf.setTextColor(102, 102, 102);
+                pdf.text('Signature Over Printed Name', rightX + sigBlockW / 2, sigLineY + 10, { align: 'center' });
+
+                // Footer note
+                pdf.setFont('times', 'italic');
+                pdf.setFontSize(8);
+                pdf.setTextColor(153, 153, 153);
+                pdf.text('This is an official OJT daily log report generated via OJT Work Tracker.', pageWidth / 2, yBase - 6, { align: 'center' });
+                pdf.setFont('times', 'normal');
+                pdf.setFontSize(normalFontSize);
+                pdf.setTextColor(0, 0, 0);
+            };
+
+            let cursorY = drawHeader();
+            cursorY = drawTableHeader(cursorY);
+
+            const rowH = 10;
+            const sorted = [...entries].sort((a, b) => parsePhDate(a.date).getTime() - parsePhDate(b.date).getTime());
+
+            const drawRow = (y: number, entry: TimeEntry, isTotalRow: boolean) => {
+                pdf.setDrawColor(...borderColor);
+                pdf.setLineWidth(0.35);
+
+                if (isTotalRow) {
+                    pdf.setFillColor(243, 244, 246);
+                    pdf.rect(marginX, y, contentWidth, rowH, 'F');
+                }
+
+                if (isTotalRow) {
+                    const leftW = colDateW + colAmInW + colAmOutW + colPmInW + colPmOutW;
+                    pdf.rect(marginX, y, leftW, rowH);
+                    pdf.rect(marginX + leftW, y, colTotalW, rowH);
+                } else {
+                    pdf.rect(marginX, y, contentWidth, rowH);
+                    [x1, x2, x3, x4, x5].forEach((x) => pdf.line(x, y, x, y + rowH));
+                }
+
+                pdf.setFont('times', isTotalRow ? 'bold' : 'normal');
+                pdf.setFontSize(10);
+                pdf.setTextColor(0, 0, 0);
+
+                if (isTotalRow) {
+                    const totalHours = entries.reduce((sum, e) => sum + e.hours, 0);
+                    pdf.text('GRAND TOTAL HOURS:', marginX + (colDateW + colAmInW + colAmOutW + colPmInW + colPmOutW) - cellPad, y + 6.5, { align: 'right' });
+                    pdf.text(`${totalHours} h`, x5 + colTotalW / 2, y + 6.5, { align: 'center' });
+                    return;
+                }
+
+                const d = parsePhDate(entry.date);
+                const day = formatPh(d, { day: 'numeric' });
+                const w = formatPh(d, { weekday: 'short' }).toUpperCase();
+                const m = formatPh(d, { month: 'short' }).toUpperCase();
+
+                // Month watermark (behind date/weekday)
+                pdf.setFont('times', 'bold');
+                pdf.setTextColor(226, 232, 240);
+                const watermarkBaseSize = 18;
+                pdf.setFontSize(watermarkBaseSize);
+                const availableW = Math.max(0, colDateW - 3);
+                const watermarkScale = pdf.getTextWidth(m) > 0 ? Math.min(1, availableW / pdf.getTextWidth(m)) : 1;
+                const watermarkSize = Math.max(10, Math.min(22, watermarkBaseSize * watermarkScale));
+                pdf.setFontSize(watermarkSize);
+                pdf.text(m, x0 + colDateW / 2, y + rowH / 2 + watermarkSize * 0.12, { align: 'center' });
+
+                pdf.setFont('times', 'bold');
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFontSize(10);
+                pdf.text(day, x0 + colDateW / 2, y + 5.8, { align: 'center' });
+                pdf.setFont('times', 'normal');
+                pdf.setFontSize(7.5);
+                pdf.setTextColor(102, 102, 102);
+                pdf.text(w, x0 + colDateW / 2, y + 9, { align: 'center' });
+
+                pdf.setFontSize(10);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(formatTime12h(entry.amIn), x1 + colAmInW / 2, y + 6.5, { align: 'center' });
+                pdf.text(formatTime12h(entry.amOut), x2 + colAmOutW / 2, y + 6.5, { align: 'center' });
+                pdf.text(formatTime12h(entry.pmIn), x3 + colPmInW / 2, y + 6.5, { align: 'center' });
+                pdf.text(formatTime12h(entry.pmOut), x4 + colPmOutW / 2, y + 6.5, { align: 'center' });
+
+                pdf.setFont('times', 'bold');
+                pdf.text(`${entry.hours} h`, x5 + colTotalW / 2, y + 6.5, { align: 'center' });
+            };
+
+            for (const entry of sorted) {
+                if (cursorY + rowH > pageHeight - marginBottom) {
+                    pdf.addPage();
+                    cursorY = marginTop;
+                    cursorY = drawTableHeader(cursorY);
+                }
+                drawRow(cursorY, entry, false);
+                cursorY += rowH;
+            }
+
+            // Grand total row
+            if (cursorY + rowH > pageHeight - marginBottom) {
+                pdf.addPage();
+                cursorY = marginTop;
+                cursorY = drawTableHeader(cursorY);
+            }
+            drawRow(cursorY, sorted[0] || ({} as TimeEntry), true);
+            cursorY += rowH;
+
+            // Certification statement + footer only on last page
+            const certText = 'I hereby certify on my honor that the above is a true and correct report of the hours of work performed, record of which was made daily at the time of arrival and departure from the office/place of work.';
+            const certLines = pdf.splitTextToSize(certText, contentWidth);
+            const certBlockH = certLines.length * 4.2 + 6;
+
+            // ensure space for certification + footer
+            if (cursorY + certBlockH + footerHeight > pageHeight - marginBottom) {
+                pdf.addPage();
+                cursorY = marginTop;
+            }
+
+            pdf.setFont('times', 'normal');
+            pdf.setFontSize(10.5);
+            pdf.setTextColor(51, 51, 51);
+            pdf.text(certLines, marginX, cursorY + 8);
+            cursorY += certBlockH;
+
+            if (cursorY + footerHeight > pageHeight - marginBottom) {
+                pdf.addPage();
+            }
+            pdf.setPage(pdf.getNumberOfPages());
+            drawFooterLastPage();
+
+            const phNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+            const datePart = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Manila' }).format(phNow);
+            const timePart = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Manila' }).format(phNow).replace(/:/g, '');
+            pdf.save(`OJT_DTR_${datePart}_${timePart}.pdf`);
         } catch (error) {
             console.error('PDF Export Error:', error);
             Swal.fire({

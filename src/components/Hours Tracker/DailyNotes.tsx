@@ -54,6 +54,10 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
 
+            const parsePhDate = (dateStr: string) => new Date(`${dateStr}T00:00:00+08:00`);
+            const formatPh = (d: Date, options: Intl.DateTimeFormatOptions) =>
+                new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'Asia/Manila' }).format(d);
+
             const marginX = 12;
             const marginTop = 14;
             const marginBottom = 14;
@@ -212,10 +216,10 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
             pdf.setFontSize(normalFontSize);
 
             for (const note of notes) {
-                const date = new Date(note.date);
-                const dateMain = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                const dateSub = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-                const dateYear = String(date.getFullYear());
+                const date = parsePhDate(note.date);
+                const dateMain = formatPh(date, { month: 'short', day: 'numeric' });
+                const dateSub = formatPh(date, { weekday: 'short' }).toUpperCase();
+                const dateYear = formatPh(date, { year: 'numeric' });
 
                 const textLines = pdf.splitTextToSize(note.content || '', colTextW - cellPad * 2);
                 const textHeight = Math.max(8, textLines.length * (normalFontSize * 0.3528) * lineHeightFactor);
