@@ -29,6 +29,46 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
 }) => {
     const [isExporting, setIsExporting] = useState(false);
     const printRef = useRef<HTMLDivElement>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
+
+    const playClickSound = () => {
+        try {
+            const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+            if (!Ctx) return;
+
+            if (!audioContextRef.current) {
+                audioContextRef.current = new Ctx();
+            }
+
+            const ctx = audioContextRef.current;
+            if (ctx.state === 'suspended') {
+                void ctx.resume();
+            }
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+
+            gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.005);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.06);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.07);
+
+            osc.onended = () => {
+                osc.disconnect();
+                gain.disconnect();
+            };
+        } catch {
+            return;
+        }
+    };
 
     const handleDownloadPDF = async () => {
         if (!printRef.current) return;
@@ -245,6 +285,8 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                                                             type="time"
                                                             value={entry.amIn || ''}
                                                             onChange={(e) => onUpdateEntry(entry.id, 'amIn', e.target.value)}
+                                                            onClick={playClickSound}
+                                                            onFocus={playClickSound}
                                                             className="w-full bg-white border border-gray-200 rounded-lg px-1.5 sm:px-2 py-1.5 text-[10px] sm:text-xs font-medium focus:ring-1 focus:ring-[#1a2517] outline-none"
                                                         />
                                                     </div>
@@ -254,6 +296,8 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                                                             type="time"
                                                             value={entry.amOut || ''}
                                                             onChange={(e) => onUpdateEntry(entry.id, 'amOut', e.target.value)}
+                                                            onClick={playClickSound}
+                                                            onFocus={playClickSound}
                                                             className="w-full bg-white border border-gray-200 rounded-lg px-1.5 sm:px-2 py-1.5 text-[10px] sm:text-xs font-medium focus:ring-1 focus:ring-[#1a2517] outline-none"
                                                         />
                                                     </div>
@@ -300,6 +344,8 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                                                             type="time"
                                                             value={entry.pmIn || ''}
                                                             onChange={(e) => onUpdateEntry(entry.id, 'pmIn', e.target.value)}
+                                                            onClick={playClickSound}
+                                                            onFocus={playClickSound}
                                                             className="w-full bg-white border border-gray-200 rounded-lg px-1.5 sm:px-2 py-1.5 text-[10px] sm:text-xs font-medium focus:ring-1 focus:ring-[#1a2517] outline-none"
                                                         />
                                                     </div>
@@ -309,6 +355,8 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                                                             type="time"
                                                             value={entry.pmOut || ''}
                                                             onChange={(e) => onUpdateEntry(entry.id, 'pmOut', e.target.value)}
+                                                            onClick={playClickSound}
+                                                            onFocus={playClickSound}
                                                             className="w-full bg-white border border-gray-200 rounded-lg px-1.5 sm:px-2 py-1.5 text-[10px] sm:text-xs font-medium focus:ring-1 focus:ring-[#1a2517] outline-none"
                                                         />
                                                     </div>

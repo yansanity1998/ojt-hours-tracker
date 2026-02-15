@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Home, Clock, BarChart3, User } from 'lucide-react';
 
 interface NavItem {
@@ -23,6 +23,47 @@ const NavBar: React.FC<NavBarProps> = ({
     onTimeToggle,
     avatarUrl = null
 }) => {
+    const audioContextRef = useRef<AudioContext | null>(null);
+
+    const playClickSound = () => {
+        try {
+            const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+            if (!Ctx) return;
+
+            if (!audioContextRef.current) {
+                audioContextRef.current = new Ctx();
+            }
+
+            const ctx = audioContextRef.current;
+            if (ctx.state === 'suspended') {
+                void ctx.resume();
+            }
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+
+            gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.005);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.06);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.07);
+
+            osc.onended = () => {
+                osc.disconnect();
+                gain.disconnect();
+            };
+        } catch {
+            return;
+        }
+    };
+
     const navItems: NavItem[] = [
         {
             icon: <Home className="w-5 h-5" />,
@@ -60,7 +101,10 @@ const NavBar: React.FC<NavBarProps> = ({
                 {/* FAB Button - centered above navbar */}
                 <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-10">
                     <button
-                        onClick={onTimeToggle}
+                        onClick={() => {
+                            playClickSound();
+                            onTimeToggle?.();
+                        }}
                         className="group relative flex flex-col items-center justify-center transition-all duration-300 ease-out hover:scale-105 active:scale-95 focus:outline-none"
                     >
                         {/* Icon with transparent background and colored border */}
