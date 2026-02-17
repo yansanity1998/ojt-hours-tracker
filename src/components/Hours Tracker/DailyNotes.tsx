@@ -225,7 +225,14 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                 const textHeight = Math.max(8, textLines.length * (normalFontSize * 0.3528) * lineHeightFactor);
 
                 const hasImages = !!(note.imageUrls && note.imageUrls.length > 0);
-                const imgBlockHeight = hasImages ? 55 : 10;
+                const imgCount = hasImages ? Math.min(3, note.imageUrls!.length) : 0;
+                const imgBlockHeight = !hasImages
+                    ? 10
+                    : imgCount === 1
+                        ? 54
+                        : imgCount === 2
+                            ? 54
+                            : 55;
 
                 const rowHeight = Math.max(24, textHeight + cellPad * 2, imgBlockHeight + cellPad * 2);
 
@@ -273,20 +280,36 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                     const urls = note.imageUrls!.slice(0, 3);
                     const dataUrls = await Promise.all(urls.map(fetchAsDataUrl));
 
-                    // Main image
-                    const main = dataUrls[0];
-                    if (main) {
-                        const mainH = 36;
-                        (pdf as any).addImage(main, 'JPEG', proofX, cursorY + 4, proofW, mainH);
-                    }
-
-                    // Thumbs
-                    const thumbY = cursorY + 42;
-                    const thumbH = 12;
+                    const count = urls.length;
+                    const topY = cursorY + 4;
                     const gap = 2;
-                    const thumbW = (proofW - gap) / 2;
-                    if (dataUrls[1]) (pdf as any).addImage(dataUrls[1], 'JPEG', proofX, thumbY, thumbW, thumbH);
-                    if (dataUrls[2]) (pdf as any).addImage(dataUrls[2], 'JPEG', proofX + thumbW + gap, thumbY, thumbW, thumbH);
+
+                    if (count === 1) {
+                        const main = dataUrls[0];
+                        if (main) {
+                            const mainH = 48;
+                            (pdf as any).addImage(main, 'JPEG', proofX, topY, proofW, mainH);
+                        }
+                    } else if (count === 2) {
+                        const img1 = dataUrls[0];
+                        const img2 = dataUrls[1];
+                        const eachH = 23;
+                        if (img1) (pdf as any).addImage(img1, 'JPEG', proofX, topY, proofW, eachH);
+                        if (img2) (pdf as any).addImage(img2, 'JPEG', proofX, topY + eachH + gap, proofW, eachH);
+                    } else {
+                        // 3 images: big preview + 2 thumbs
+                        const main = dataUrls[0];
+                        if (main) {
+                            const mainH = 34;
+                            (pdf as any).addImage(main, 'JPEG', proofX, topY, proofW, mainH);
+                        }
+
+                        const thumbY = topY + 34 + gap;
+                        const thumbH = 13;
+                        const thumbW = (proofW - gap) / 2;
+                        if (dataUrls[1]) (pdf as any).addImage(dataUrls[1], 'JPEG', proofX, thumbY, thumbW, thumbH);
+                        if (dataUrls[2]) (pdf as any).addImage(dataUrls[2], 'JPEG', proofX + thumbW + gap, thumbY, thumbW, thumbH);
+                    }
 
                     // Badge
                     const badgeY = cursorY + rowHeight - 5;
