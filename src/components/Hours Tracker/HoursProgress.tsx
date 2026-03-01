@@ -70,6 +70,17 @@ const HoursProgress: React.FC<HoursProgressProps> = ({
     ];
 
     const isBadgeUnlocked = (threshold: number) => progressPercentage >= threshold;
+    const currentBadge = [...badges].reverse().find(b => isBadgeUnlocked(b.threshold));
+    const activeColor = currentBadge ? currentBadge.color : '#0d120c';
+
+    // Helper for text color to match the harder versions currently used
+    const getActiveTextColor = () => {
+        if (progressPercentage >= 100) return '#e67e45'; // Goal Crusher
+        if (progressPercentage >= 75) return '#d97706';  // Almost There
+        if (progressPercentage >= 50) return '#637a5b';  // Halfway Hero
+        if (progressPercentage >= 25) return '#3b82f6';  // First Steps
+        return '#0d120c';
+    };
 
     const hasMetRequirement = left <= 0;
     const hasCelebratedRef = useRef(false);
@@ -105,12 +116,7 @@ const HoursProgress: React.FC<HoursProgressProps> = ({
                     <span className="text-xs font-black text-primary/70 uppercase tracking-[0.2em]">Completion Progress</span>
                     <span
                         className="text-3xl sm:text-4xl md:text-5xl font-black tabular-nums transition-all duration-500 drop-shadow-sm"
-                        style={{
-                            color: progressPercentage >= 100 ? '#e67e45' : // Deeper Peach/Orange
-                                progressPercentage >= 75 ? '#d97706' : // Darker Amber
-                                    progressPercentage >= 50 ? '#637a5b' : // Deeper Sage
-                                        progressPercentage >= 25 ? '#3b82f6' : '#0d120c', // Deeper Blue
-                        }}
+                        style={{ color: getActiveTextColor() }}
                     >
                         {progressPercentage.toFixed(0)}%
                     </span>
@@ -118,7 +124,11 @@ const HoursProgress: React.FC<HoursProgressProps> = ({
                 <div className="progress-container h-[14px] sm:h-[16px]">
                     <div
                         className="progress-fill"
-                        style={{ width: `${progressPercentage}%` }}
+                        style={{
+                            width: `${progressPercentage}%`,
+                            background: activeColor,
+                            boxShadow: currentBadge ? `0 0 15px ${activeColor}40` : undefined
+                        }}
                     />
                 </div>
             </div>
@@ -218,6 +228,6 @@ const HoursProgress: React.FC<HoursProgressProps> = ({
             )}
         </div>
     );
-};
+};  
 
 export default HoursProgress;
