@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { BookOpen, Plus, Edit2, Trash2, Save, X, Calendar, Image as ImageIcon, Loader2, Camera, FileDown } from 'lucide-react';
 import Swal from 'sweetalert2';
+import type { SweetAlertOptions } from 'sweetalert2';
 import type { NotificationType } from './Notification';
 import Webcam from 'react-webcam';
 import { supabase } from '../../supabase/supabase';
@@ -21,6 +22,19 @@ interface DailyNotesProps {
 }
 
 const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
+    const fireResponsiveSwal = (options: SweetAlertOptions) => {
+        const popupClass = typeof options.customClass === 'object' ? options.customClass?.popup : undefined;
+
+        return Swal.fire({
+            width: 'clamp(320px, 92vw, 720px)',
+            ...options,
+            customClass: {
+                ...(typeof options.customClass === 'object' ? options.customClass : undefined),
+                popup: [popupClass, 'max-w-none'].filter(Boolean).join(' '),
+            },
+        });
+    };
+
     const [notes, setNotes] = useState<Note[]>([]);
     const [isAddingNote, setIsAddingNote] = useState(false);
     const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -352,7 +366,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
             onNotify?.('note-updated', 'PDF downloaded successfully.');
         } catch (error) {
             console.error('PDF Export Error:', error);
-            Swal.fire({
+            fireResponsiveSwal({
                 icon: 'error',
                 title: 'Export failed',
                 text: 'Could not generate PDF. Please try again.',
@@ -424,7 +438,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
         const availableSlots = 3 - newImages.length;
 
         if (availableSlots <= 0) {
-            Swal.fire({
+            fireResponsiveSwal({
                 icon: 'warning',
                 title: 'Image limit reached',
                 text: 'You can attach up to 3 images per daily note.',
@@ -456,7 +470,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
         const availableSlots = 3 - currentCount;
 
         if (availableSlots <= 0) {
-            Swal.fire({
+            fireResponsiveSwal({
                 icon: 'warning',
                 title: 'Image limit reached',
                 text: 'You can attach up to 3 images per daily note.',
@@ -495,7 +509,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
         if (!imageSrc) return;
 
         if (newImages.length >= 3) {
-            Swal.fire({
+            fireResponsiveSwal({
                 icon: 'warning',
                 title: 'Image limit reached',
                 text: 'You can attach up to 3 images per daily note.',
@@ -605,24 +619,22 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
             setNewImagePreviews([]);
             setShowCamera(false);
             setIsAddingNote(false);
-            Swal.fire({
+            fireResponsiveSwal({
                 icon: 'success',
                 title: 'Note added',
                 text: 'Your daily note has been saved.',
                 confirmButtonColor: '#1a2517',
-                width: '90%',
                 customClass: {
                     popup: 'sm:max-w-md'
                 }
             });
             onNotify?.('note-added', 'Daily note added.');
         } else if (error) {
-            Swal.fire({
+            fireResponsiveSwal({
                 icon: 'error',
                 title: 'Add failed',
                 text: 'Failed to add note. Please try again.',
                 confirmButtonColor: '#dc2626',
-                width: '90%',
                 customClass: {
                     popup: 'sm:max-w-md'
                 }
@@ -637,12 +649,11 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
         if (!editNoteContent.trim()) return;
 
         if (!editNoteDate) {
-            Swal.fire({
+            fireResponsiveSwal({
                 icon: 'warning',
                 title: 'Date required',
                 text: 'Please select a date for this note.',
                 confirmButtonColor: '#1a2517',
-                width: '90%',
                 customClass: {
                     popup: 'sm:max-w-md'
                 }
@@ -652,12 +663,11 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
 
         const hasDuplicateDate = notes.some(note => note.date === editNoteDate && note.id !== noteId);
         if (hasDuplicateDate) {
-            Swal.fire({
+            fireResponsiveSwal({
                 icon: 'warning',
                 title: 'Duplicate date',
                 text: 'You already have a note for this date. Please choose another date.',
                 confirmButtonColor: '#1a2517',
-                width: '90%',
                 customClass: {
                     popup: 'sm:max-w-md'
                 }
@@ -710,24 +720,22 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
             setEditExistingImageUrls([]);
             setEditImages([]);
             setEditImagePreviews([]);
-            Swal.fire({
+            fireResponsiveSwal({
                 icon: 'success',
                 title: 'Note updated',
                 text: 'Your daily note has been updated.',
                 confirmButtonColor: '#1a2517',
-                width: '90%',
                 customClass: {
                     popup: 'sm:max-w-md'
                 }
             });
             onNotify?.('note-updated', 'Daily note updated.');
         } else {
-            Swal.fire({
+            fireResponsiveSwal({
                 icon: 'error',
                 title: 'Update failed',
                 text: 'Failed to update note. Please try again.',
                 confirmButtonColor: '#dc2626',
-                width: '90%',
                 customClass: {
                     popup: 'sm:max-w-md'
                 }
@@ -743,24 +751,22 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
 
         if (!error) {
             setNotes(prev => prev.filter(note => note.id !== noteId));
-            Swal.fire({
+            fireResponsiveSwal({
                 icon: 'success',
                 title: 'Note deleted',
                 text: 'The daily note has been removed.',
                 confirmButtonColor: '#1a2517',
-                width: '90%',
                 customClass: {
                     popup: 'sm:max-w-md'
                 }
             });
             onNotify?.('note-deleted', 'Daily note deleted.');
         } else {
-            Swal.fire({
+            fireResponsiveSwal({
                 icon: 'error',
                 title: 'Delete failed',
                 text: 'Failed to delete note. Please try again.',
                 confirmButtonColor: '#dc2626',
-                width: '90%',
                 customClass: {
                     popup: 'sm:max-w-md'
                 }
