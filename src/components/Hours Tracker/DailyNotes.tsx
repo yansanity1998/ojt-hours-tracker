@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { BookOpen, Plus, Edit2, Trash2, Save, X, Calendar, Image as ImageIcon, Loader2, Camera, FileDown } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -61,6 +61,49 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
     const [isExporting, setIsExporting] = useState(false);
     const printRef = useRef<HTMLDivElement>(null);
 
+    type ExportTimeline = 'all' | 'custom';
+    const [exportTimeline, setExportTimeline] = useState<ExportTimeline>('all');
+    const [exportStartDate, setExportStartDate] = useState('');
+    const [exportEndDate, setExportEndDate] = useState('');
+
+    const parsePhDate = (dateStr: string) => new Date(`${dateStr}T00:00:00+08:00`);
+    const toIsoDate = (d: Date) => {
+        const yy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yy}-${mm}-${dd}`;
+    };
+
+    const noteDateBounds = useMemo(() => {
+        const dates = notes
+            .map((n) => parsePhDate(n.date))
+            .filter((d) => !Number.isNaN(d.getTime()))
+            .sort((a, b) => a.getTime() - b.getTime());
+
+        return {
+            min: dates[0] || null,
+            max: dates[dates.length - 1] || null,
+        };
+    }, [notes]);
+
+    const exportNotes = useMemo(() => {
+        const sortedAsc = [...notes].sort((a, b) => parsePhDate(a.date).getTime() - parsePhDate(b.date).getTime());
+
+        if (exportTimeline === 'custom') {
+            if (!exportStartDate || !exportEndDate) return [];
+            const startT = parsePhDate(exportStartDate).getTime();
+            const endT = parsePhDate(exportEndDate).getTime();
+            if (Number.isNaN(startT) || Number.isNaN(endT)) return [];
+            return sortedAsc.filter((n) => {
+                const t = parsePhDate(n.date).getTime();
+                if (Number.isNaN(t)) return false;
+                return t >= startT && t <= endT;
+            });
+        }
+
+        return sortedAsc;
+    }, [exportEndDate, exportStartDate, exportTimeline, notes]);
+
     const handleDownloadPDF = async () => {
         setIsExporting(true);
         try {
@@ -68,7 +111,6 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
 
-            const parsePhDate = (dateStr: string) => new Date(`${dateStr}T00:00:00+08:00`);
             const formatPh = (d: Date, options: Intl.DateTimeFormatOptions) =>
                 new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'Asia/Manila' }).format(d);
 
@@ -229,7 +271,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
             pdf.setFont('times', 'normal');
             pdf.setFontSize(normalFontSize);
 
-            for (const note of notes) {
+            for (const note of exportNotes) {
                 const date = parsePhDate(note.date);
                 const dateMain = formatPh(date, { month: 'short', day: 'numeric' });
                 const dateSub = formatPh(date, { weekday: 'short' }).toUpperCase();
@@ -1161,10 +1203,52 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                                     <h2 className="text-xl sm:text-2xl font-bold text-primary">Daily Notes History</h2>
                                     <p className="text-xs sm:text-sm text-primary/60">Total {notes.length} entries</p>
                                 </div>
-                                <div className="flex items-center justify-between sm:justify-end gap-3">
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                                    <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 w-full sm:w-auto">
+                                        <select
+                                            value={exportTimeline}
+                                            onChange={(e) => {
+                                                const v = e.target.value as ExportTimeline;
+                                                setExportTimeline(v);
+                                                if (v !== 'custom') {
+                                                    setExportStartDate('');
+                                                    setExportEndDate('');
+                                                }
+                                            }}
+                                            className="w-full xs:w-auto bg-white border border-primary/10 rounded-xl px-3 py-2 text-[10px] sm:text-xs font-bold text-primary uppercase tracking-wider sm:tracking-widest shadow-sm"
+                                            title="Export timeline"
+                                        >
+                                            <option value="all">All dates</option>
+                                            <option value="custom">Custom range</option>
+                                        </select>
+
+                                        {exportTimeline === 'custom' && (
+                                            <div className="grid grid-cols-2 gap-2 w-full xs:w-auto">
+                                                <input
+                                                    type="date"
+                                                    value={exportStartDate}
+                                                    min={noteDateBounds.min ? toIsoDate(noteDateBounds.min) : undefined}
+                                                    max={exportEndDate || undefined}
+                                                    onChange={(e) => setExportStartDate(e.target.value)}
+                                                    className="bg-white border border-primary/10 rounded-xl px-3 py-2 text-[10px] sm:text-xs font-bold text-primary uppercase tracking-wider sm:tracking-widest shadow-sm"
+                                                    title="Start date"
+                                                />
+                                                <input
+                                                    type="date"
+                                                    value={exportEndDate}
+                                                    min={exportStartDate || undefined}
+                                                    max={noteDateBounds.max ? toIsoDate(noteDateBounds.max) : undefined}
+                                                    onChange={(e) => setExportEndDate(e.target.value)}
+                                                    className="bg-white border border-primary/10 rounded-xl px-3 py-2 text-[10px] sm:text-xs font-bold text-primary uppercase tracking-wider sm:tracking-widest shadow-sm"
+                                                    title="End date"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <button
                                         onClick={handleDownloadPDF}
-                                        disabled={isExporting}
+                                        disabled={isExporting || exportNotes.length === 0}
                                         className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-xs sm:text-sm font-bold rounded-xl hover:shadow-lg hover:bg-secondary-sage hover:text-primary transition-all active:scale-95 disabled:opacity-50"
                                     >
                                         {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
@@ -1306,7 +1390,7 @@ const DailyNotes: React.FC<DailyNotesProps> = ({ userId, onNotify }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {notes.map((note) => (
+                            {exportNotes.map((note) => (
                                 <tr key={note.id}>
                                     <td style={{ border: '1px solid #111111', padding: '10px', verticalAlign: 'top', textAlign: 'center' }}>
                                         <div style={{ fontWeight: 'bold' }}>{new Date(note.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>

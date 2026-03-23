@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { History, Plus, Trash2, FolderOpen, Sun, Sunset, CalendarDays, FileDown, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import Swal from 'sweetalert2';
@@ -29,6 +29,54 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
     const [isExporting, setIsExporting] = useState(false);
     const printRef = useRef<HTMLDivElement>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
+
+    const parsePhDate = (dateStr: string) => new Date(`${dateStr}T00:00:00+08:00`);
+    const formatPh = (d: Date, options: Intl.DateTimeFormatOptions) =>
+        new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'Asia/Manila' }).format(d);
+
+    type ExportTimeline = 'all' | 'custom';
+
+    const [exportTimeline, setExportTimeline] = useState<ExportTimeline>('all');
+    const [exportStartDate, setExportStartDate] = useState('');
+    const [exportEndDate, setExportEndDate] = useState('');
+
+    const toIsoDate = (d: Date) => {
+        const yy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yy}-${mm}-${dd}`;
+    };
+
+    const entryDateBounds = useMemo(() => {
+        const dates = entries
+            .map((e) => parsePhDate(e.date))
+            .filter((d) => !Number.isNaN(d.getTime()))
+            .sort((a, b) => a.getTime() - b.getTime());
+
+        return {
+            min: dates[0] || null,
+            max: dates[dates.length - 1] || null,
+        };
+    }, [entries]);
+
+    const exportEntries = useMemo(() => {
+        const sortedAsc = [...entries].sort((a, b) => parsePhDate(a.date).getTime() - parsePhDate(b.date).getTime());
+
+        if (exportTimeline === 'custom') {
+            if (!exportStartDate || !exportEndDate) return [];
+            const startT = parsePhDate(exportStartDate).getTime();
+            const endT = parsePhDate(exportEndDate).getTime();
+            if (Number.isNaN(startT) || Number.isNaN(endT)) return [];
+
+            return sortedAsc.filter((e) => {
+                const t = parsePhDate(e.date).getTime();
+                if (Number.isNaN(t)) return false;
+                return t >= startT && t <= endT;
+            });
+        }
+
+        return sortedAsc;
+    }, [entries, exportEndDate, exportStartDate, exportTimeline]);
 
     const playClickSound = () => {
         try {
@@ -84,10 +132,6 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
             const headerTitleSize = 16;
             const normalFontSize = 10;
 
-            const parsePhDate = (dateStr: string) => new Date(`${dateStr}T00:00:00+08:00`);
-            const formatPh = (d: Date, options: Intl.DateTimeFormatOptions) =>
-                new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'Asia/Manila' }).format(d);
-
             const formatTime12h = (t: string | null) => {
                 if (!t) return '-- : --';
                 const m = /^\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*$/.exec(t);
@@ -134,11 +178,11 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                 let y = marginTop;
 
                 const monthLabel = (() => {
-                    if (entries.length === 0) {
+                    if (exportEntries.length === 0) {
                         return new Date().toLocaleDateString('en-PH', { month: 'long', year: 'numeric', timeZone: 'Asia/Manila' });
                     }
 
-                    const sortedDates = [...entries]
+                    const sortedDates = [...exportEntries]
                         .map(e => parsePhDate(e.date))
                         .filter(d => !Number.isNaN(d.getTime()))
                         .sort((a, b) => a.getTime() - b.getTime());
@@ -279,7 +323,7 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
             cursorY = drawTableHeader(cursorY);
 
             const rowH = 10;
-            const sorted = [...entries].sort((a, b) => parsePhDate(a.date).getTime() - parsePhDate(b.date).getTime());
+            const sorted = [...exportEntries];
 
             const drawRow = (y: number, entry: TimeEntry, isTotalRow: boolean) => {
                 pdf.setDrawColor(...borderColor);
@@ -304,7 +348,7 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                 pdf.setTextColor(0, 0, 0);
 
                 if (isTotalRow) {
-                    const totalHours = entries.reduce((sum, e) => sum + e.hours, 0);
+                    const totalHours = exportEntries.reduce((sum, e) => sum + e.hours, 0);
                     pdf.text('GRAND TOTAL HOURS:', marginX + (colDateW + colAmInW + colAmOutW + colPmInW + colPmOutW) - cellPad, y + 6.5, { align: 'right' });
                     pdf.text(`${totalHours} h`, x5 + colTotalW / 2, y + 6.5, { align: 'center' });
                     return;
@@ -404,6 +448,7 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
             setIsExporting(false);
         }
     };
+
     const handleAddSession = (entryId: string, type: 'am' | 'pm', entryDate: string) => {
         // Check if entry is for today
         const now = new Date();
@@ -464,6 +509,7 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1a2517]/10 to-[#ACC8A2]/10 flex items-center justify-center text-[#1a2517] shadow-sm">
                         <History className="w-5 h-5" />
                     </div>
+
                     <div>
                         <h2 className="text-xl font-bold text-[#1a2517] leading-none">
                             Activity Logs
@@ -474,10 +520,52 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                     </div>
                 </div>
 
-                <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                    <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 w-full sm:w-auto">
+                        <select
+                            value={exportTimeline}
+                            onChange={(e) => {
+                                const v = e.target.value as ExportTimeline;
+                                setExportTimeline(v);
+                                if (v !== 'custom') {
+                                    setExportStartDate('');
+                                    setExportEndDate('');
+                                }
+                            }}
+                            className="w-full xs:w-auto bg-white border border-primary/10 rounded-xl px-3 py-2 text-[10px] sm:text-xs font-bold text-primary uppercase tracking-wider sm:tracking-widest shadow-sm"
+                            title="Export timeline"
+                        >
+                            <option value="all">All dates</option>
+                            <option value="custom">Custom range</option>
+                        </select>
+
+                        {exportTimeline === 'custom' && (
+                            <div className="grid grid-cols-2 gap-2 w-full xs:w-auto">
+                                <input
+                                    type="date"
+                                    value={exportStartDate}
+                                    min={entryDateBounds.min ? toIsoDate(entryDateBounds.min) : undefined}
+                                    max={exportEndDate || undefined}
+                                    onChange={(e) => setExportStartDate(e.target.value)}
+                                    className="bg-white border border-primary/10 rounded-xl px-3 py-2 text-[10px] sm:text-xs font-bold text-primary uppercase tracking-wider sm:tracking-widest shadow-sm"
+                                    title="Start date"
+                                />
+                                <input
+                                    type="date"
+                                    value={exportEndDate}
+                                    min={exportStartDate || undefined}
+                                    max={entryDateBounds.max ? toIsoDate(entryDateBounds.max) : undefined}
+                                    onChange={(e) => setExportEndDate(e.target.value)}
+                                    className="bg-white border border-primary/10 rounded-xl px-3 py-2 text-[10px] sm:text-xs font-bold text-primary uppercase tracking-wider sm:tracking-widest shadow-sm"
+                                    title="End date"
+                                />
+                            </div>
+                        )}
+                    </div>
+
                     <button
                         onClick={handleDownloadPDF}
-                        disabled={isExporting || entries.length === 0}
+                        disabled={isExporting || entries.length === 0 || exportEntries.length === 0}
                         className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-white text-primary text-[10px] sm:text-xs font-bold rounded-xl border border-primary/10 hover:bg-gray-50 transition-all active:scale-95 disabled:opacity-50 shadow-sm"
                     >
                         {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
@@ -749,24 +837,25 @@ const TimeRecords: React.FC<TimeRecordsProps> = ({
                             </tr>
                         </thead>
                         <tbody>
-                            {[...entries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((entry) => (
-                                <tr key={entry.id}>
-                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>
-                                        <div style={{ fontWeight: 'bold', fontSize: '12pt' }}>{new Date(entry.date).getDate()}</div>
-                                        <div style={{ fontSize: '7.5pt', color: '#666666', textTransform: 'uppercase', fontWeight: 'bold' }}>{new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                                    </td>
-                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.amIn || '-- : --'}</td>
-                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.amOut || '-- : --'}</td>
-                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.pmIn || '-- : --'}</td>
-                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.pmOut || '-- : --'}</td>
-                                    <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center', fontWeight: 'bold', backgroundColor: '#fcfcfc' }}>{entry.hours} h</td>
-                                </tr>
-                            ))}
+                            {[...exportEntries]
+                                .map((entry) => (
+                                    <tr key={entry.id}>
+                                        <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>
+                                            <div style={{ fontWeight: 'bold', fontSize: '12pt' }}>{new Date(entry.date).getDate()}</div>
+                                            <div style={{ fontSize: '7.5pt', color: '#666666', textTransform: 'uppercase', fontWeight: 'bold' }}>{new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                                        </td>
+                                        <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.amIn || '-- : --'}</td>
+                                        <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.amOut || '-- : --'}</td>
+                                        <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.pmIn || '-- : --'}</td>
+                                        <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center' }}>{entry.pmOut || '-- : --'}</td>
+                                        <td style={{ border: '1px solid #000000', padding: '10px', textAlign: 'center', fontWeight: 'bold', backgroundColor: '#fcfcfc' }}>{entry.hours} h</td>
+                                    </tr>
+                                ))}
                             {/* Grand Total Row */}
                             <tr style={{ backgroundColor: '#eeeeee' }}>
                                 <td colSpan={5} style={{ border: '1px solid #000000', padding: '15px 20px', textAlign: 'right', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '11pt' }}>Grand Total Hours:</td>
                                 <td style={{ border: '1px solid #000000', padding: '15px 10px', textAlign: 'center', fontWeight: '900', fontSize: '13pt' }}>
-                                    {entries.reduce((sum, e) => sum + e.hours, 0)} h
+                                    {exportEntries.reduce((sum, e) => sum + e.hours, 0)} h
                                 </td>
                             </tr>
                         </tbody>
